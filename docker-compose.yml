@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: ecommerce_postgres
+    environment:
+      POSTGRES_USER: db_admin
+      POSTGRES_PASSWORD: SuperSecurePassword123!
+      POSTGRES_DB: ecommerce_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    mem_limit: 512m
+    mem_reservation: 256m
+
+  redis_cache:
+    image: redis:7-alpine
+    container_name: ecommerce_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    mem_limit: 256m
+    mem_reservation: 128m
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ecommerce_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ecommerce.com
+      PGADMIN_DEFAULT_PASSWORD: AdminPassword123!
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres_db
+    restart: unless-stopped
+    mem_limit: 256m
+    mem_reservation: 128m
+
+volumes:
+  postgres_data:
