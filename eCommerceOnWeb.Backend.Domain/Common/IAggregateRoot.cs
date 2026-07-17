@@ -1,4 +1,4 @@
-﻿namespace eCommerceOnWeb.Backend.Domain.Entities.Base
+﻿namespace eCommerceOnWeb.Backend.Domain.Common
 {
     /// <summary>
     /// Маркерный интерфейс для Агрегатов верхнего уровня (DDD).

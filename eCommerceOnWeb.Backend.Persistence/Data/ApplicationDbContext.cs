@@ -1,9 +1,9 @@
-﻿using eCommerceOnWeb.Backend.Domain.Entities;
-using eCommerceOnWeb.Backend.Domain.Entities.Base;
+﻿using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
+using eCommerceOnWeb.Backend.Domain.Common; // ISoftDeletable лежит здесь
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
+using System.Reflection;
 
-namespace eCommerceOnWeb.Backend.Infrastructure.Data;
+namespace eCommerceOnWeb.Backend.Persistence.Data;
 
 public class ApplicationDbContext : DbContext
 {
@@ -11,84 +11,72 @@ public class ApplicationDbContext : DbContext
     {
     }
 
-    // РЕГИСТРАЦИЯ ТАБЛИЦ КАТАЛОГА
-    public DbSet<Brand> Brands => Set<Brand>();
-    public DbSet<Category> Categories => Set<Category>();
     public DbSet<Product> Products => Set<Product>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        base.OnModelCreating(modelBuilder);
+        base.OnModelCreating(builder);
 
-        // Автоматическое сканирование всех сущностей домена
-        foreach (Microsoft.EntityFrameworkCore.Metadata.IMutableEntityType entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
-            {
-                // Изолируем таблицы в схему 'app' по Паспорту Проекта
-                modelBuilder.Entity(entityType.ClrType).ToTable(entityType.ClrType.Name, "app");
+        // Глобально запрещаем маппить базовый доменный класс событий
+        builder.Ignore<DomainEvent>();
 
-                // --- ИСПРАВЛЕНИЕ ОШИБКИ CS8917 ЧЕРЕЗ EXPRESSION TREES ---
-                // Генерируем лямбду: e => EF.Property<bool>(e, "IsDeleted") == false
-                ParameterExpression parameter = Expression.Parameter(entityType.ClrType, "e");
-                System.Reflection.MethodInfo propertyMethod = typeof(EF).GetMethod(nameof(EF.Property))!.MakeGenericMethod(typeof(bool));
-                MethodCallExpression isDeletedProperty = Expression.Call(propertyMethod, parameter, Expression.Constant(nameof(BaseEntity.IsDeleted)));
-                BinaryExpression compareExpression = Expression.Equal(isDeletedProperty, Expression.Constant(false));
-                LambdaExpression lambda = Expression.Lambda(compareExpression, parameter);
-
-                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
-                // ---------------------------------------------------------
-
-                // Оптимизация: B-Tree индекс на флаг удаления для PostgreSQL
-                modelBuilder.Entity(entityType.ClrType).HasIndex(nameof(BaseEntity.IsDeleted));
-            }
-        }
-
-        // ЯВНОЕ ОПИСАНИЕ СВЯЗЕЙ (FLUENT API) С ЗАЩИТОЙ ОТ КАСКАДНОГО УДАЛЕНИЯ
-        modelBuilder.Entity<Product>()
-            .HasOne(p => p.Category)
-            .WithMany(c => c.Products)
-            .HasForeignKey(p => p.CategoryId)
-            .OnDelete(DeleteBehavior.Restrict); // Нельзя удалить категорию, если в ней есть товары
-
-        modelBuilder.Entity<Product>()
-            .HasOne(p => p.Brand)
-            .WithMany(b => b.Products)
-            .HasForeignKey(p => p.BrandId)
-            .OnDelete(DeleteBehavior.Restrict); // Нельзя удалить бренд, если к нему привязаны товары
-
-        modelBuilder.Entity<Category>()
-            .HasOne(c => c.ParentCategory)
-            .WithMany(c => c.SubCategories)
-            .HasForeignKey(c => c.ParentCategoryId)
-            .OnDelete(DeleteBehavior.Restrict); // Защита для иерархии категорий
+        // Автоматически применяем конфигурации из вашей папки EntityTypeConfigurations
+        builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
 
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    // Перехват сохранения изменений для автоматического Soft Delete
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Временная Guid-заглушка согласно Паспорту проекта
-        string currentUserId = "00000000-0000-0000-0000-000000000001";
+        ApplySoftDelete();
+        return base.SaveChangesAsync(cancellationToken);
+    }
 
-        foreach (Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<BaseEntity> entry in ChangeTracker.Entries<BaseEntity>())
+    public override int SaveChanges()
+    {
+        ApplySoftDelete();
+        return base.SaveChanges();
+    }
+
+    private void ApplySoftDelete()
+    {
+        // Находим все сущности в состоянии Deleted, которые реализуют ISoftDeletable
+        IEnumerable<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<ISoftDeletable>> entries = ChangeTracker.Entries<ISoftDeletable>()
+            .Where(e => e.State == EntityState.Deleted);
+
+        foreach (Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<ISoftDeletable>? entry in entries)
         {
-            switch (entry.State)
+            // Отменяем физическое удаление из базы данных
+            entry.State = EntityState.Modified;
+
+            // Заполняем доменные свойства мягкого удаления
+            entry.CurrentValues[nameof(ISoftDeletable.IsDeleted)] = true;
+            entry.CurrentValues[nameof(ISoftDeletable.DeletedAtUtc)] = DateTime.UtcNow;
+
+            // Если у сущности есть свойство IsActive (как у Product), его тоже выключаем [3]
+            if (entry.CurrentValues.Properties.Any(p => p.Name == "IsActive"))
             {
-                case EntityState.Added:
-                    entry.Property(x => x.CreatedBy).CurrentValue = currentUserId;
-                    break;
-
-                case EntityState.Modified:
-                    entry.Entity.MarkAsUpdated(currentUserId);
-                    break;
-
-                case EntityState.Deleted:
-                    // Перехватываем физическое удаление и превращаем в Soft Delete
-                    entry.State = EntityState.Modified;
-                    entry.Entity.SoftDelete(currentUserId);
-                    break;
+                entry.CurrentValues["IsActive"] = false;
             }
         }
+    }
 
-        return await base.SaveChangesAsync(cancellationToken);
+    /// <summary>
+    /// Динамически генерирует лямбда-выражение (e => !e.IsDeleted) для фильтра EF Core.
+    /// </summary>
+    private static System.Linq.Expressions.LambdaExpression ConvertFilterExpression(Type type)
+    {
+        System.Linq.Expressions.ParameterExpression parameter = System.Linq.Expressions.Expression.Parameter(type, "e");
+        System.Linq.Expressions.MemberExpression property = System.Linq.Expressions.Expression.Property(parameter, nameof(ISoftDeletable.IsDeleted));
+        System.Linq.Expressions.UnaryExpression notExpression = System.Linq.Expressions.Expression.Not(property);
+        return System.Linq.Expressions.Expression.Lambda(notExpression, parameter);
+    }
+
+    private static string ConvertToSnakeCase(string? input)
+    {
+        if (string.IsNullOrEmpty(input)) return string.Empty;
+
+        return System.Text.RegularExpressions.Regex
+            .Replace(input, "([a-z0-9])([A-Z])", "$1_$2")
+            .ToLowerInvariant();
     }
 }
