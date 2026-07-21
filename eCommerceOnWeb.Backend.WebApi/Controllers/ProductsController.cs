@@ -1,4 +1,5 @@
-﻿using eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct;
+﻿using eCommerceOnWeb.Backend.Application.Features.Products.Queries.CreateProduct;
+using eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails;
 using eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProducts;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,6 +7,29 @@ namespace eCommerceOnWeb.Backend.WebApi.Controllers
 {
     public class ProductsController : ApiControllerBase
     {
+        /// <summary>
+        /// Получить подробную информацию о товаре по его Guid (включая галерею картинок из MinIO)
+        /// </summary>
+        /// <param name="id">Идентификатор товара</param>
+        /// <param name="cancellationToken">Токен отмены запроса</param>
+        /// <returns>JSON с данными товара или 404 Not Found</returns>
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ProductDetailsDto))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+        {
+            // Отправляем запрос в MediatR. Он сам найдет наш GetProductDetailsQueryHandler
+            GetProductDetailsQuery query = new GetProductDetailsQuery(id);
+            ProductDetailsDto? result = await Mediator.Send(query, cancellationToken);
+
+            if (result == null)
+            {
+                return NotFound(new { Message = $"Товар с ID {id} не найден." });
+            }
+
+            return Ok(result);
+        }
+
         /// <summary>
         /// Создать новую карточку товара электроники.
         /// </summary>

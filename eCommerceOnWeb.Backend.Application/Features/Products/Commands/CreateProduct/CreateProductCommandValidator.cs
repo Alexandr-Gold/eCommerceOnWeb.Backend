@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.CreateProduct
 {
     /// <summary>
     /// Валидатор входящих данных для команды создания продукта.

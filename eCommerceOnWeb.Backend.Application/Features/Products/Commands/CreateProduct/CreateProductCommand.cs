@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.CreateProduct
 {
     /// <summary>
     /// Команда MediatR для создания новой карточки товара электроники.
