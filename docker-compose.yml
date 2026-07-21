@@ -1,4 +1,4 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
   postgres_db:
@@ -39,5 +39,41 @@ services:
     mem_limit: 256m
     mem_reservation: 128m
 
+  minio_s3:
+    image: minio/minio:latest
+    container_name: ecommerce_minio
+    ports:
+      - "9000:9000" 
+      - "9001:9001" 
+    environment:
+      MINIO_ROOT_USER: s3_admin
+      MINIO_ROOT_PASSWORD: SuperSecureS3Password123!
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    mem_limit: 256m
+    mem_reservation: 128m
+
+  minio_init:
+    image: minio/mc:latest
+    container_name: ecommerce_minio_init
+    depends_on:
+      minio_s3:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio_s3:9000 s3_admin SuperSecureS3Password123!;
+      mc mb --ignore-existing myminio/ecommerce-bucket;
+      mc anonymous set download myminio/ecommerce-bucket;
+      exit 0;
+      "
+
 volumes:
   postgres_data:
+  minio_data:
