@@ -5,14 +5,14 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using eCommerceOnWeb.Backend.Persistence.Data;
+using eCommerceOnWeb.Backend.Persistence.Contexts;
 
 #nullable disable
 
 namespace eCommerceOnWeb.Backend.Persistence.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260716155439_InitialCreate")]
+    [DbContext(typeof(ECommerceDbContext))]
+    [Migration("20260719215747_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -28,50 +28,72 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
             modelBuilder.Entity("eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate.Product", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Attributes")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("attributes");
 
                     b.Property<Guid>("BrandId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("brand_id");
 
                     b.Property<Guid>("CategoryId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
 
                     b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at_utc");
 
                     b.Property<string>("Gtin")
                         .HasMaxLength(13)
                         .HasColumnType("character(13)")
+                        .HasColumnName("gtin")
                         .IsFixedLength();
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
 
                     b.Property<string>("ModelNumber")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("model_number");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("name");
 
                     b.Property<string>("Sku")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("sku");
 
                     b.Property<int>("StockQuantity")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("stock_quantity");
 
                     b.Property<int>("WarrantyMonths")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("warranty_months");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Attributes")
+                        .HasDatabaseName("IX_products_attributes_gin");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Attributes"), "GIN");
 
                     b.HasIndex("BrandId");
 
@@ -121,40 +143,6 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
                                 .HasForeignKey("ProductId");
                         });
 
-                    b.OwnsMany("eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate.ProductImage", "Images", b1 =>
-                        {
-                            b1.Property<Guid>("Id")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("AltText")
-                                .IsRequired()
-                                .HasMaxLength(250)
-                                .HasColumnType("character varying(250)");
-
-                            b1.Property<int>("DisplayOrder")
-                                .HasColumnType("integer");
-
-                            b1.Property<bool>("IsMain")
-                                .HasColumnType("boolean");
-
-                            b1.Property<Guid>("ProductId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("Url")
-                                .IsRequired()
-                                .HasMaxLength(1000)
-                                .HasColumnType("character varying(1000)");
-
-                            b1.HasKey("Id");
-
-                            b1.HasIndex("ProductId");
-
-                            b1.ToTable("product_images", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("ProductId");
-                        });
-
                     b.OwnsOne("eCommerceOnWeb.Backend.Domain.Common.Money", "Price", b1 =>
                         {
                             b1.Property<Guid>("ProductId")
@@ -179,50 +167,44 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
                                 .HasForeignKey("ProductId");
                         });
 
-                    b.OwnsMany("eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate.ProductAttributeValue", "AttributeValues", b1 =>
+                    b.OwnsMany("eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate.ProductImage", "Images", b1 =>
                         {
                             b1.Property<Guid>("Id")
-                                .HasColumnType("uuid");
+                                .HasColumnType("uuid")
+                                .HasColumnName("id");
 
-                            b1.Property<Guid>("AttributeId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("AttributeName")
+                            b1.Property<string>("AltText")
                                 .IsRequired()
-                                .HasMaxLength(150)
-                                .HasColumnType("character varying(150)");
+                                .HasMaxLength(250)
+                                .HasColumnType("character varying(250)")
+                                .HasColumnName("alt_text");
 
-                            b1.Property<bool?>("BooleanValue")
-                                .HasColumnType("boolean");
+                            b1.Property<int>("DisplayOrder")
+                                .HasColumnType("integer")
+                                .HasColumnName("display_order");
 
-                            b1.Property<string>("DisplayValue")
+                            b1.Property<bool>("IsMain")
+                                .HasColumnType("boolean")
+                                .HasColumnName("is_main");
+
+                            b1.Property<string>("StorageKey")
                                 .IsRequired()
-                                .HasMaxLength(500)
-                                .HasColumnType("character varying(500)");
-
-                            b1.Property<decimal?>("NumericValue")
-                                .HasPrecision(18, 4)
-                                .HasColumnType("numeric(18,4)");
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)")
+                                .HasColumnName("storage_key");
 
                             b1.Property<Guid>("product_id")
                                 .HasColumnType("uuid");
 
                             b1.HasKey("Id");
 
-                            b1.HasIndex("AttributeId");
-
                             b1.HasIndex("product_id");
 
-                            b1.HasIndex("AttributeId", "NumericValue")
-                                .HasFilter("numeric_value IS NOT NULL");
-
-                            b1.ToTable("product_attribute_values", (string)null);
+                            b1.ToTable("product_images", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("product_id");
                         });
-
-                    b.Navigation("AttributeValues");
 
                     b.Navigation("Images");
 
