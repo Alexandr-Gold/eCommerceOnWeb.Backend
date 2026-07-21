@@ -68,7 +68,7 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 
         public void AddImage(string url, string altText, int displayOrder, bool setAsMain = false)
         {
-            if (_images.Any(i => i.Url.Equals(url, StringComparison.OrdinalIgnoreCase)))
+            if (_images.Any(i => i.StorageKey.Equals(url, StringComparison.OrdinalIgnoreCase)))
                 throw new DomainException("Такое изображение уже добавлено к товару.");
 
             ProductImage image = new ProductImage(url, altText, displayOrder);

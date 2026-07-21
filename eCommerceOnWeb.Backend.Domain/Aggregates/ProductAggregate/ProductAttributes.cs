@@ -1,4 +1,5 @@
 ﻿using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate.Exceptions;
+using System.Text.Json.Serialization;
 
 namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 {
@@ -6,8 +7,15 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
     {
         private readonly Dictionary<string, object> _values;
 
+        // Добавлено публичное свойство, имя которого СТРОГО совпадает с параметром конструктора (регистр не важен).
+        // Атрибут [JsonInclude] заставит System.Text.Json использовать именно его для записи и чтения в БД.
+        [JsonInclude]
+        public Dictionary<string, object> Values => _values;
+
         public static ProductAttributes Empty() => new(new Dictionary<string, object>());
 
+        // Теперь параметр 'values' идеально мапится на свойство 'Values' выше!
+        [JsonConstructor]
         private ProductAttributes(Dictionary<string, object> values)
         {
             _values = values ?? new Dictionary<string, object>();

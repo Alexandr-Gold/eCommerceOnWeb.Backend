@@ -5,18 +5,18 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 {
     public class ProductImage : BaseEntity
     {
-        public string Url { get; private set; } = string.Empty;
+        public string StorageKey { get; private set; } = string.Empty;
         public string AltText { get; private set; } = string.Empty;
         public int DisplayOrder { get; private set; } // Для сортировки в галерее
         public bool IsMain { get; internal set; }    // Управляется только через агрегат Product
 
         private ProductImage() { }
 
-        public ProductImage(string url, string altText, int displayOrder)
+        public ProductImage(string storagekey, string altText, int displayOrder)
         {
-            if (string.IsNullOrWhiteSpace(url)) throw new DomainException("URL изображения обязателен.");
+            if (string.IsNullOrWhiteSpace(storagekey)) throw new DomainException("Storage Key изображения обязателен.");
 
-            Url = url;
+            StorageKey = storagekey;
             AltText = altText;
             DisplayOrder = displayOrder;
             IsMain = false;
@@ -24,7 +24,13 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 
         public void UpdateDetails(string altText, int displayOrder)
         {
-            AltText = altText;
+            if (displayOrder < 0)
+                throw new DomainException("Display Order не может быть отрицательным.");
+
+            if (string.IsNullOrWhiteSpace(altText))
+                throw new DomainException("Alt Text не может быть пустым.");
+
+            AltText = altText.Trim();
             DisplayOrder = displayOrder;
         }
     }
