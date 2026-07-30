@@ -45,6 +45,10 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at_utc");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Gtin")
                         .HasMaxLength(13)
                         .HasColumnType("character(13)")

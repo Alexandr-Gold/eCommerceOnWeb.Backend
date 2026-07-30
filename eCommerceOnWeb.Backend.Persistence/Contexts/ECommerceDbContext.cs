@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace eCommerceOnWeb.Backend.Persistence.Contexts;
 
-public class ECommerceDbContext : DbContext, IECommerceDbContext // cs0535
+public class ECommerceDbContext : DbContext, IECommerceDbContext
 {
     public ECommerceDbContext(DbContextOptions<ECommerceDbContext> options) : base(options)
     {
@@ -14,7 +14,7 @@ public class ECommerceDbContext : DbContext, IECommerceDbContext // cs0535
 
     public DbSet<Product> Products => Set<Product>(); //cs0103
 
-    protected override void OnModelCreating(ModelBuilder builder) //cs0115
+    protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); //cs0117
 
@@ -26,16 +26,16 @@ public class ECommerceDbContext : DbContext, IECommerceDbContext // cs0535
     }
 
     // Перехват сохранения изменений для автоматического Soft Delete
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) // cs0115
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         ApplySoftDelete();
-        return base.SaveChangesAsync(cancellationToken); // cs0117
+        return base.SaveChangesAsync(cancellationToken);
     }
 
-    public override int SaveChanges() // cs0115
+    public override int SaveChanges()
     {
         ApplySoftDelete();
-        return base.SaveChanges(); // cs0117
+        return base.SaveChanges();
     }
 
     private void ApplySoftDelete()
