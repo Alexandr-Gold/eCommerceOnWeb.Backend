@@ -42,6 +42,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+using (IServiceScope scope = app.Services.CreateScope())
+{
+    ECommerceDbContext context =
+        scope.ServiceProvider.GetRequiredService<ECommerceDbContext>();
+
+    await context.Database.MigrateAsync();
+
+    await ECommerceDbContextSeed.SeedAsync(context);
+}
+
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();

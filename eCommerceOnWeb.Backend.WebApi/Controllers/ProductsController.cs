@@ -18,16 +18,15 @@ namespace eCommerceOnWeb.Backend.WebApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
         {
-            // Отправляем запрос в MediatR. Он сам найдет наш GetProductDetailsQueryHandler
+            // 1. Создаем запрос
             GetProductDetailsQuery query = new GetProductDetailsQuery(id);
-            ProductDetailsDto? result = await Mediator.Send(query, cancellationToken);
 
-            if (result == null)
-            {
-                return NotFound(new { Message = $"Товар с ID {id} не найден." });
-            }
+            // 2. Отправляем в MediatR. Теперь тип 'result' — это Result<ProductDetailsDto>
+            Domain.Common.Result<ProductDetailsDto> result = await Mediator.Send(query, cancellationToken);
 
-            return Ok(result);
+            // 3. Передаем контейнер в базовый метод. 
+            // Он сам проверит .IsSuccess, достанет .Value или сгенерирует 404/400 ошибку.
+            return HandleResult(result);
         }
 
         /// <summary>
