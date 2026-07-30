@@ -1,4 +1,4 @@
-﻿using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate.Exceptions;
+﻿using eCommerceOnWeb.Backend.Domain.Exceptions;
 using System.Text.Json.Serialization;
 
 namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate

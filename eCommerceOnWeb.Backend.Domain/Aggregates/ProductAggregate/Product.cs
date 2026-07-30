@@ -23,6 +23,8 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
         public Guid CategoryId { get; private set; }
         public Guid BrandId { get; private set; }
 
+        public string Description { get; private set; } = string.Empty;
+
         // --- Инкапсулированные коллекции (DDD-стиль) ---
         private readonly List<ProductImage> _images = new();
         public IReadOnlyCollection<ProductImage> Images => _images.OrderBy(i => i.DisplayOrder).ToList().AsReadOnly();
@@ -43,6 +45,7 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
             Money price,
             Guid categoryId,
             Guid brandId,
+            string description,
             int warrantyMonths,
             Dimensions shippingDimensions,
             int initialStock = 0)
@@ -57,6 +60,7 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
             Price = price ?? throw new ArgumentNullException(nameof(price));
             CategoryId = categoryId;
             BrandId = brandId;
+            Description = description;
             WarrantyMonths = warrantyMonths;
             ShippingDimensions = shippingDimensions ?? throw new ArgumentNullException(nameof(shippingDimensions));
             StockQuantity = initialStock;
@@ -109,6 +113,13 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
         }
 
         // --- ДРУГИЕ БИЗНЕС-МЕТОДЫ ---
+
+        public void UpdateDescription(string description)
+        {
+            if (string.IsNullOrWhiteSpace(description))
+                throw new ArgumentException("Description cannot be empty", nameof(description));
+            Description = description;
+        }
 
         // Установить или обновить атрибут
         public void SetAttribute(string key, object value)
@@ -164,6 +175,33 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
         {
             if (quantity <= 0) throw new DomainException("Количество должно быть больше нуля.");
             StockQuantity += quantity;
+        }
+
+        public static Product Create(
+            string name,
+            string sku,
+            string? gtin,
+            string modelNumber,
+            Money price,
+            Guid categoryId,
+            Guid brandId,
+            string description,
+            int warrantyMonths,
+            Dimensions shippingDimensions,
+            int initialStock = 0)
+        {
+            return new Product(
+                name,
+                sku,
+                gtin,
+                modelNumber,
+                price,
+                categoryId,
+                brandId,
+                description,
+                warrantyMonths,
+                shippingDimensions,
+                initialStock);
         }
 
         public void Delete()
