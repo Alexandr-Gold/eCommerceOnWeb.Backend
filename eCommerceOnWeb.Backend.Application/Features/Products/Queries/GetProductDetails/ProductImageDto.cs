@@ -8,5 +8,5 @@
      string AltText,
      int DisplayOrder,
      bool IsMain
- );
+    );
 }

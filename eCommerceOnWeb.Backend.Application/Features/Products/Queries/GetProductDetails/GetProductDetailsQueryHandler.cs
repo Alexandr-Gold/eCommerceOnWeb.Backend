@@ -1,56 +1,80 @@
 ﻿using eCommerceOnWeb.Backend.Application.Common.Interfaces;
-using eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails;
+using eCommerceOnWeb.Backend.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class GetProductDetailsQueryHandler : IRequestHandler<GetProductDetailsQuery, ProductDetailsDto?>
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails
 {
-    private readonly IECommerceDbContext _context;
-    private readonly IStorageService _storageService;
 
-    public GetProductDetailsQueryHandler(IECommerceDbContext context, IStorageService storageService)
+    // 1. Меняем TResponse в интерфейсе на Result<ProductDetailsDto>
+    public sealed class GetProductDetailsQueryHandler : IRequestHandler<GetProductDetailsQuery, Result<ProductDetailsDto>>
     {
-        _context = context;
-        _storageService = storageService;
-    }
+        private readonly IECommerceDbContext _context;
+        private readonly IStorageService _storageService;
 
-    public async Task<ProductDetailsDto?> Handle(GetProductDetailsQuery request, CancellationToken cancellationToken)
-    {
-        // 1. Извлекаем товар из БД (БЕЗ вызова сторонних сервисов внутри LINQ)
-        eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate.Product? product = await _context.Products
-            .AsNoTracking()
-            .Include(p => p.Images)
-            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-        if (product == null)
+        public GetProductDetailsQueryHandler(IECommerceDbContext context, IStorageService storageService)
         {
-            return null;
+            _context = context;
+            _storageService = storageService;
         }
 
-        // 2. Вся работа с C#-методами (генерация ссылок) происходит здесь — в оперативной памяти (In-Memory)
-        List<ProductImageDto> imagesDto = product.Images
-            .OrderBy(img => img.DisplayOrder)
-            .Select(img => new ProductImageDto(
-                img.Id,
-                _storageService.GetAbsoluteUrl(img.StorageKey), // ⚡ Теперь это отработает идеально!
-                img.StorageKey,
-                img.AltText ?? string.Empty,
-                img.DisplayOrder,
-                img.IsMain
-            ))
-            .ToList();
+        // 2. Меняем тип возвращаемого значения в сигнатуре метода Handle
+        public async Task<Result<ProductDetailsDto>> Handle(GetProductDetailsQuery request, CancellationToken cancellationToken)
+        {
+            // Извлекаем товар из БД (In-Memory логика остается)
+            Domain.Aggregates.ProductAggregate.Product? product = await _context.Products
+                .AsNoTracking()
+                .Include(p => p.Images)
+                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
 
-        // 3. Возвращаем готовый DTO
-        return new ProductDetailsDto(
-            product.Id,
-            product.Name ?? string.Empty,
-            product.Sku ?? string.Empty,
-            product.Price.Amount,
-            product.Price.Currency ?? "RUB",
-            product.StockQuantity,
-            product.CategoryId,
-            product.BrandId,
-            imagesDto
-        );
+            // 3. Вместо return null возвращаем типизированную ошибку сбоя бизнес-логики
+            if (product == null)
+            {
+                return Result<ProductDetailsDto>.Failure(ProductErrors.NotFound(request.Id));
+            }
+
+            // Вся работа со ссылками в памяти остается БЕЗ изменений
+            List<ProductImageDto> imagesDto = product.Images
+                .OrderBy(img => img.DisplayOrder)
+                .Select(img => new ProductImageDto(
+                    img.Id,
+                    _storageService.GetAbsoluteUrl(img.StorageKey),
+                    img.StorageKey,
+                    img.AltText ?? string.Empty,
+                    img.DisplayOrder,
+                    img.IsMain
+                ))
+                .ToList();
+
+            // создать ProductAttributeDto в GetProductDetails
+            // Получаем Атрибуты из БД маппим в ДТО и возвращаем в Лист
+            //List<ProductImageDto> imagesDto = product.Atributes
+            //   .OrderBy(img => img.DisplayOrder)
+            //   .Select(img => new ProductImageDto(
+            //       img.Id,
+            //       _storageService.GetAbsoluteUrl(img.StorageKey),
+            //       img.StorageKey,
+            //       img.AltText ?? string.Empty,
+            //       img.DisplayOrder,
+            //       img.IsMain
+            //   ))
+            //   .ToList();
+
+            // 4. Формируем и сразу возвращаем DTO (без создания лишней переменной)
+            ProductDetailsDto dto = new ProductDetailsDto(
+                product.Id,
+                product.Name ?? string.Empty,
+                product.Sku ?? string.Empty,
+                product.Price.Amount,
+                product.Price.Currency ?? "RUB",
+                product.StockQuantity,
+                product.Description ?? string.Empty,
+                product.CategoryId,
+                product.BrandId,
+                imagesDto
+            // Add attributesDto
+            );
+            return Result<ProductDetailsDto>.Success(dto);
+        }
     }
 }

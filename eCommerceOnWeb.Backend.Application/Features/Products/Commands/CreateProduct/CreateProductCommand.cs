@@ -14,6 +14,7 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.CreatePro
     /// </summary>
     public sealed record CreateProductCommand(
         string Name,
+        string Description,
         string Sku,
         string? Gtin,
         string ModelNumber,
@@ -27,5 +28,6 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.CreatePro
         decimal DimDepthCm,
         decimal DimWeightKg,
         int InitialStock,
-        List<ProductSpecificationDto> Specifications) : IRequest<Guid>; // 🔴 ДОБАВИЛИ СПИСОК ХАРАКТЕРИСТИК
+        List<ProductSpecificationDto> Specifications) : IRequest<Guid>;
 }
+

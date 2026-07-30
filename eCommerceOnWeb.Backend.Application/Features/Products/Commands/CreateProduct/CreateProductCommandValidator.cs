@@ -18,6 +18,10 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.CreatePro
                 .NotEmpty().WithMessage("Внутренний артикул (SKU) обязателен.")
                 .MaximumLength(100).WithMessage("SKU не должен превышать 100 символов.");
 
+            RuleFor(x => x.Description)
+                .NotEmpty().WithMessage("Описание товара обязательно.")
+                .MaximumLength(2000).WithMessage("Описание не должно превышать 2000 символов.");
+
             // Проверяем международный штрих-код EAN-13, если он передан
             RuleFor(x => x.Gtin)
                 .MaximumLength(13).WithMessage("Штрих-код (GTIN) не может быть длиннее 13 символов.")

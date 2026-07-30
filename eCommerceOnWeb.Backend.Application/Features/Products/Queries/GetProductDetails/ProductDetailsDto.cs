@@ -5,11 +5,12 @@
     Guid Id,
     string Name,
     string Sku,
-    decimal PriceAmount,     // Убедитесь, что это поле есть
-    string PriceCurrency,   // Убедитесь, что это поле есть
+    decimal PriceAmount,
+    string PriceCurrency,
     int StockQuantity,
+    string Description,
     Guid CategoryId,
     Guid BrandId,
     IReadOnlyCollection<ProductImageDto> Images
-);
+    );
 }
