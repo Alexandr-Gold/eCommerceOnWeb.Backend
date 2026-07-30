@@ -31,6 +31,7 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
                     is_active = table.Column<bool>(type: "boolean", nullable: false),
                     category_id = table.Column<Guid>(type: "uuid", nullable: false),
                     brand_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
                     attributes = table.Column<string>(type: "jsonb", nullable: false),
                     is_deleted = table.Column<bool>(type: "boolean", nullable: false),
                     deleted_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)

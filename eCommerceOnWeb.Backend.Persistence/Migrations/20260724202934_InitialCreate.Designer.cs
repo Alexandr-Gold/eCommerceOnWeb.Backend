@@ -12,7 +12,7 @@ using eCommerceOnWeb.Backend.Persistence.Contexts;
 namespace eCommerceOnWeb.Backend.Persistence.Migrations
 {
     [DbContext(typeof(ECommerceDbContext))]
-    [Migration("20260719215747_InitialCreate")]
+    [Migration("20260724202934_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -47,6 +47,10 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
                     b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at_utc");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("Gtin")
                         .HasMaxLength(13)
