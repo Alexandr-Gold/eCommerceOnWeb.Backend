@@ -21,6 +21,7 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProduc
         int StockQuantity,
         Guid CategoryId,
         Guid BrandId,
+        string Description,
         IReadOnlyDictionary<string, object> Specifications); // ДОБАВЛЕНО ПОЛЕ ДЛЯ JSONB ХАРАКТЕРИСТИК;
 
     // Сам Query-запрос (record MediatR)

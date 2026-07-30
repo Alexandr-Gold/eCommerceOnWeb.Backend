@@ -8,11 +8,11 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProduc
     public sealed class GetProductsWithPaginationQueryHandler
      : IRequestHandler<GetProductsWithPaginationQuery, PaginatedList<ProductDto>>
     {
-        private readonly IReadRepository<Product> _repository;
+        private readonly IReadRepository<Product> _product;
 
-        public GetProductsWithPaginationQueryHandler(IReadRepository<Product> repository)
+        public GetProductsWithPaginationQueryHandler(IReadRepository<Product> product)
         {
-            _repository = repository;
+            _product = product;
         }
 
         public async Task<PaginatedList<ProductDto>> Handle(
@@ -27,7 +27,7 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProduc
                 searchTerm: request.SearchTerm,
                 isPagingEnabled: false); // Сработают только блоки Where, без Skip и Take
 
-            int totalCount = await _repository.CountAsync(countSpec, cancellationToken);
+            int totalCount = await _product.CountAsync(countSpec, cancellationToken);
 
             // 2. Получаем конкретную страницу данных (пагинация включена по умолчанию)
             ProductFilterSpec filterSpec = new ProductFilterSpec(
@@ -37,7 +37,7 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProduc
                 pageIndex: request.PageIndex,
                 pageSize: request.PageSize);
 
-            List<Product> products = await _repository.ListAsync(filterSpec, cancellationToken);
+            List<Product> products = await _product.ListAsync(filterSpec, cancellationToken);
             // 3. Маппим доменные объекты в плоские DTO с учетом словаря Specifications
             List<ProductDto> productDtos = products.Select(p => new ProductDto(
                 p.Id,
@@ -50,7 +50,8 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProduc
                 p.StockQuantity,
                 p.CategoryId,
                 p.BrandId,
-                p.Specifications // 🔴 НАПРЯМУЮ ЗАБИРАЕМ СЛОВАРЬ ИЗ JSONB КОЛОНКИ БЕЗ JOIN-ов
+                p.Description,
+                p.Specifications // НАПРЯМУЮ ЗАБИРАЕМ СЛОВАРЬ ИЗ JSONB КОЛОНКИ БЕЗ JOIN-ов
             )).ToList();
 
             // 4. Расчет метаданных пагинации
