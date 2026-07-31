@@ -189,8 +189,9 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
             int warrantyMonths,
             Dimensions shippingDimensions,
             int initialStock = 0)
+
         {
-            return new Product(
+            Product product = new Product(
                 name,
                 sku,
                 gtin,
@@ -202,6 +203,15 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
                 warrantyMonths,
                 shippingDimensions,
                 initialStock);
+
+            // Добавляем событие в коллекцию агрегата
+            product.AddDomainEvent(
+                new ProductCreatedEvent(
+                    product.Id,
+                    product.Sku,
+                    product.Price));
+
+            return product;
         }
 
         public void Delete()

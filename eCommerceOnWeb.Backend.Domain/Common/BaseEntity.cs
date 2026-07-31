@@ -13,8 +13,8 @@
         // Публичное свойство только для чтения, чтобы Infrastructure могла забрать события перед сохранением
         public IReadOnlyCollection<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
-        // 🌟 ЭТОТ МЕТОД ДОЛЖЕН БЫТЬ ТУТ: Он позволяет сущностям регистрировать события
-        public void AddDomainEvent(DomainEvent domainEvent)
+        // ЭТОТ МЕТОД ДОЛЖЕН БЫТЬ ТУТ: Он позволяет сущностям регистрировать события
+        protected void AddDomainEvent(DomainEvent domainEvent)
         {
             _domainEvents.Add(domainEvent);
         }
@@ -23,6 +23,11 @@
         public void ClearDomainEvents()
         {
             _domainEvents.Clear();
+        }
+
+        protected void RemoveDomainEvent(DomainEvent domainEvent)
+        {
+            _domainEvents.Remove(domainEvent);
         }
     }
 }
