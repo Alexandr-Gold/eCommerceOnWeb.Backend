@@ -24,11 +24,4 @@ namespace eCommerceOnWeb.Backend.Domain.Common
             OccurredOnUtc = occurredOnUtc;
         }
     }
-
-
-    //public abstract record DomainEvent : INotification
-    //{
-    //    public Guid EventId { get; init; } = Guid.NewGuid();
-    //    public DateTime OccurredOnUtc { get; init; } = DateTime.UtcNow;
-    //}
 }

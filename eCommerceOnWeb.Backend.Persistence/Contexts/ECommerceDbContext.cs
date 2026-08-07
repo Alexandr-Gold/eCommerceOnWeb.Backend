@@ -1,6 +1,7 @@
 ﻿using eCommerceOnWeb.Backend.Application.Common.Interfaces;
 using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using eCommerceOnWeb.Backend.Domain.Common; // ISoftDeletable лежит здесь
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -8,15 +9,18 @@ namespace eCommerceOnWeb.Backend.Persistence.Contexts;
 
 public class ECommerceDbContext : DbContext, IECommerceDbContext
 {
-    public ECommerceDbContext(DbContextOptions<ECommerceDbContext> options) : base(options)
+    private readonly IMediator _mediator;
+    public ECommerceDbContext(DbContextOptions<ECommerceDbContext> options,
+        IMediator mediator) : base(options)
     {
+        _mediator = mediator;
     }
 
-    public DbSet<Product> Products => Set<Product>(); //cs0103
+    public DbSet<Product> Products => Set<Product>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        base.OnModelCreating(builder); //cs0117
+        base.OnModelCreating(builder);
 
         // Глобально запрещаем маппить базовый доменный класс событий
         builder.Ignore<DomainEvent>();
@@ -25,12 +29,28 @@ public class ECommerceDbContext : DbContext, IECommerceDbContext
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
 
-    // Перехват сохранения изменений для автоматического Soft Delete
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public override async Task<int> SaveChangesAsync(
+     CancellationToken cancellationToken = default)
     {
         ApplySoftDelete();
-        return base.SaveChangesAsync(cancellationToken);
+
+        IReadOnlyCollection<DomainEvent> domainEvents = GetDomainEvents();
+
+        int result = await base.SaveChangesAsync(cancellationToken);
+
+        await PublishDomainEvents(domainEvents, cancellationToken);
+
+        ClearDomainEvents();
+
+        return result;
     }
+
+    //// Перехват сохранения изменений для автоматического Soft Delete
+    //public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    //{
+    //    ApplySoftDelete();
+    //    return base.SaveChangesAsync(cancellationToken);
+    //}
 
     public override int SaveChanges()
     {
@@ -58,6 +78,39 @@ public class ECommerceDbContext : DbContext, IECommerceDbContext
             {
                 entry.CurrentValues["IsActive"] = false;
             }
+        }
+    }
+
+    private IReadOnlyCollection<DomainEvent> GetDomainEvents()
+    {
+        return ChangeTracker
+            .Entries<BaseEntity>()
+            .Select(entry => entry.Entity)
+            .Where(entity => entity.DomainEvents.Any())
+            .SelectMany(entity => entity.DomainEvents)
+            .ToList();
+    }
+
+    private void ClearDomainEvents()
+    {
+        IEnumerable<BaseEntity> entities = ChangeTracker
+            .Entries<BaseEntity>()
+            .Select(entry => entry.Entity)
+            .Where(entity => entity.DomainEvents.Any());
+
+        foreach (BaseEntity entity in entities)
+        {
+            entity.ClearDomainEvents();
+        }
+    }
+
+    private async Task PublishDomainEvents(
+    IReadOnlyCollection<DomainEvent> domainEvents,
+    CancellationToken cancellationToken)
+    {
+        foreach (DomainEvent domainEvent in domainEvents)
+        {
+            await _mediator.Publish(domainEvent, cancellationToken);
         }
     }
 }
