@@ -44,7 +44,7 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
             return new ProductAttributes(newValues);
         }
 
-        public IReadOnlyDictionary<string, object> GetAll() => _values.AsReadOnly();
+        public IReadOnlyDictionary<string, object> GetValues() => _values.AsReadOnly();
 
         private static bool IsValidType(object value) =>
             value is string or int or decimal or bool or DateTime or long or double;

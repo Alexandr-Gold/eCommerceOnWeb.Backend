@@ -64,8 +64,6 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
             WarrantyMonths = warrantyMonths;
             ShippingDimensions = shippingDimensions ?? throw new ArgumentNullException(nameof(shippingDimensions));
             StockQuantity = initialStock;
-
-            AddDomainEvent(new ProductCreatedEvent(Id, Sku, Price));
         }
 
         // --- МЕТОДЫ УПРАВЛЕНИЯ ИЗОБРАЖЕНИЯМИ (Инварианты галереи) ---
@@ -132,8 +130,8 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
         // Удалить атрибут
         public void RemoveAttribute(string key)
         {
-            Attributes = Attributes.RemoveValue(key);
             // Опционально: событие
+            Attributes = Attributes.RemoveValue(key);
         }
 
         // Получить значение атрибута (для внутренних нужд)
@@ -143,9 +141,6 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
         {
             ShippingDimensions = newDimensions ?? throw new ArgumentNullException(nameof(newDimensions));
         }
-
-        private Dictionary<string, object> _specifications = new();
-        public IReadOnlyDictionary<string, object> Specifications => _specifications.AsReadOnly();
 
         public void UpdateWarranty(int months)
         {
