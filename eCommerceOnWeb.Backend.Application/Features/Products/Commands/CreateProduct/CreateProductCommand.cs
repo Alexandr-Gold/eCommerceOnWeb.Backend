@@ -1,16 +1,21 @@
-﻿using MediatR;
+﻿using eCommerceOnWeb.Backend.Domain.Common;
+using MediatR;
+using System.Text.Json;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.CreateProduct
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct
 {
     /// <summary>
     /// Команда MediatR для создания новой карточки товара электроники.
     /// Возвращает Guid созданного продукта.
     /// </summary>
     // плоская структура для передачи одной характеристики из Swagger/фронтенда
-    public sealed record ProductSpecificationDto(string Key, object Value);
+    public sealed record ProductAttributeDto(
+    string Key,
+    JsonElement Value);
 
     /// <summary>
-    /// Обновленная команда для создания карточки товара электроники с поддержкой JSONB спецификаций.
+    /// Команда для создания карточки товара электроники
+    /// с поддержкой дополнительных атрибутов товара, хранящихся в JSONB.
     /// </summary>
     public sealed record CreateProductCommand(
         string Name,
@@ -28,6 +33,6 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.CreatePro
         decimal DimDepthCm,
         decimal DimWeightKg,
         int InitialStock,
-        List<ProductSpecificationDto> Specifications) : IRequest<Guid>;
+        List<ProductAttributeDto> Attributes) : IRequest<Result<Guid>>;
 }
 
