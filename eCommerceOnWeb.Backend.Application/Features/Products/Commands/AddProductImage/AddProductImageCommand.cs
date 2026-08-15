@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProductDetails
 {
     public record AddProductImageCommand(
      Guid ProductId,
