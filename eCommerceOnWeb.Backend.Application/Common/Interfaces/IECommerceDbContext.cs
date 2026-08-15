@@ -15,7 +15,7 @@ namespace eCommerceOnWeb.Backend.Application.Common.Interfaces
 
         // --- 2. Управление транзакциями и сохранением (Единица работы / Unit of Work) ---
 
-        // Самый главный метод для сохранения изменений команд (Queries)
+        // Самый главный метод для сохранения изменений команд (Commands)
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
         // --- 3. Методы низкоуровневого управления сущностями (Для сложных сценариев) ---
