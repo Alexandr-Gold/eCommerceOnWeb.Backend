@@ -1,4 +1,4 @@
-﻿namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails
+﻿namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProductDetails
 {
     // DTO картинки с URL
     public record ProductImageDto(

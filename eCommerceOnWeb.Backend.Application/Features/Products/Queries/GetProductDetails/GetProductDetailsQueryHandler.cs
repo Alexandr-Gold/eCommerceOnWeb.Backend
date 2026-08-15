@@ -3,7 +3,7 @@ using eCommerceOnWeb.Backend.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProductDetails
 {
 
     // 1. Меняем TResponse в интерфейсе на Result<ProductDetailsDto>
@@ -46,19 +46,8 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProduc
                 ))
                 .ToList();
 
-            // создать ProductAttributeDto в GetProductDetails
-            // Получаем Атрибуты из БД маппим в ДТО и возвращаем в Лист
-            //List<ProductImageDto> imagesDto = product.Atributes
-            //   .OrderBy(img => img.DisplayOrder)
-            //   .Select(img => new ProductImageDto(
-            //       img.Id,
-            //       _storageService.GetAbsoluteUrl(img.StorageKey),
-            //       img.StorageKey,
-            //       img.AltText ?? string.Empty,
-            //       img.DisplayOrder,
-            //       img.IsMain
-            //   ))
-            //   .ToList();
+            IReadOnlyDictionary<string, object> attributes =
+                product.Attributes.GetValues();
 
             // 4. Формируем и сразу возвращаем DTO (без создания лишней переменной)
             ProductDetailsDto dto = new ProductDetailsDto(
@@ -71,8 +60,8 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProduc
                 product.Description ?? string.Empty,
                 product.CategoryId,
                 product.BrandId,
-                imagesDto
-            // Add attributesDto
+                imagesDto,
+                attributes
             );
             return Result<ProductDetailsDto>.Success(dto);
         }

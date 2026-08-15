@@ -3,7 +3,7 @@ using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using eCommerceOnWeb.Backend.Domain.Common.Interfaces;
 using MediatR;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProducts
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProducts
 {
     public sealed class GetProductsWithPaginationQueryHandler
      : IRequestHandler<GetProductsWithPaginationQuery, PaginatedList<ProductDto>>
@@ -51,8 +51,8 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProduc
                 p.CategoryId,
                 p.BrandId,
                 p.Description,
-                p.Specifications // НАПРЯМУЮ ЗАБИРАЕМ СЛОВАРЬ ИЗ JSONB КОЛОНКИ БЕЗ JOIN-ов
-            )).ToList();
+                p.Attributes.GetValues() // 3. Маппим доменные объекты в плоские DTO с учетом словаря Specifications
+            )).ToList();               // Характеристики товара читаем из ProductAttributes.         
 
             // 4. Расчет метаданных пагинации
             int totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);

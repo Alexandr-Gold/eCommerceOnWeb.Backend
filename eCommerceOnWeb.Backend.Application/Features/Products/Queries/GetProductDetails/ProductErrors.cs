@@ -1,6 +1,6 @@
 ﻿using eCommerceOnWeb.Backend.Domain.Common;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProductDetails
 {
     public static class ProductErrors
     {

@@ -1,4 +1,4 @@
-﻿namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails
+﻿namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProductDetails
 {
     // Главное DTO ответа
     public record ProductDetailsDto(
@@ -11,6 +11,7 @@
     string Description,
     Guid CategoryId,
     Guid BrandId,
-    IReadOnlyCollection<ProductImageDto> Images
+    IReadOnlyCollection<ProductImageDto> Images,
+    IReadOnlyDictionary<string, object> Attributes
     );
 }
