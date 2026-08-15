@@ -9,16 +9,6 @@ using Microsoft.EntityFrameworkCore;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// 1. НАСТРОЙКА И РЕГИСТРАЦИЯ DB_CONTEXT С ПРОВАЙДЕРОМ POSTGRESQL
-//builder.Services.AddDbContext<ECommerceDbContext>(options =>
-//    options.UseNpgsql(
-//        builder.Configuration.GetConnectionString("DefaultConnection"), // Берем строку из appsettings.json
-//        npgsqlOptions => npgsqlOptions.MigrationsAssembly("eCommerceOnWeb.Backend.Persistence"))); // Указываем, куда складывать миграции
-
-// ОБЯЗАТЕЛЬНАЯ РЕГИСТРАЦИЯ ИНТЕРФЕЙСА ДЛЯ СЛОЯ APPLICATION
-//builder.Services.AddScoped<IECommerceDbContext>(provider =>
-//    provider.GetRequiredService<ECommerceDbContext>());
-
 // 2. Стандартные сервисы API
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -28,12 +18,7 @@ builder.Services.AddApplication();
 
 builder.Services.AddPersistence(
     builder.Configuration);
-// 2. Регистрация MediatR для слоя Application (замените CreateProductCommand на любой класс из Application)
-//builder.Services.AddMediatR(cfg =>
-//{
-//    cfg.RegisterServicesFromAssembly(
-//        typeof(CreateProductCommand).Assembly);
-//});
+
 // Регистрация репозитория для операций Записи и Чтения
 builder.Services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
 

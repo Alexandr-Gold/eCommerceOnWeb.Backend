@@ -1,6 +1,7 @@
-﻿using eCommerceOnWeb.Backend.Application.Features.Products.Queries.CreateProduct;
-using eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails;
-using eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProducts;
+﻿using eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct;
+using eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProductDetails;
+using eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProducts;
+using eCommerceOnWeb.Backend.Domain.Common;
 using Microsoft.AspNetCore.Mvc;
 
 namespace eCommerceOnWeb.Backend.WebApi.Controllers
@@ -39,10 +40,15 @@ namespace eCommerceOnWeb.Backend.WebApi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateProductCommand command)
         {
-            Guid productId = await Mediator.Send(command);
+            Result<Guid> result = await Mediator.Send(command);
 
-            // Возвращаем статус 201 Created и ссылку на ресурс (маршрут GetById мы напишем позже)
-            return CreatedAtAction(nameof(Create), new { id = productId }, productId);
+            if (result.IsFailure)
+                return BadRequest(result.Error);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = result.Value },
+                result.Value);
         }
 
         /// <summary>
