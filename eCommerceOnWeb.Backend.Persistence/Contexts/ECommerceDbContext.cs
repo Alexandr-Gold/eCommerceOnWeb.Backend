@@ -3,6 +3,7 @@ using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using eCommerceOnWeb.Backend.Domain.Common; // ISoftDeletable лежит здесь
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Reflection;
 
 namespace eCommerceOnWeb.Backend.Persistence.Contexts;
@@ -38,45 +39,44 @@ public class ECommerceDbContext : DbContext, IECommerceDbContext
 
         int result = await base.SaveChangesAsync(cancellationToken);
 
-        await PublishDomainEvents(domainEvents, cancellationToken);
-
-        ClearDomainEvents();
+        try
+        {
+            await PublishDomainEvents(domainEvents, cancellationToken);
+        }
+        finally
+        {
+            ClearDomainEvents();
+        }
 
         return result;
     }
 
-    //// Перехват сохранения изменений для автоматического Soft Delete
-    //public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    //{
-    //    ApplySoftDelete();
-    //    return base.SaveChangesAsync(cancellationToken);
-    //}
-
     public override int SaveChanges()
     {
-        ApplySoftDelete();
-        return base.SaveChanges();
+        throw new NotSupportedException(
+            "Use SaveChangesAsync() instead.");
     }
 
     private void ApplySoftDelete()
     {
-        // Находим все сущности в состоянии Deleted, которые реализуют ISoftDeletable
-        IEnumerable<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<ISoftDeletable>> entries = ChangeTracker.Entries<ISoftDeletable>()
-            .Where(e => e.State == EntityState.Deleted);
+        IEnumerable<EntityEntry<ISoftDeletable>> entries =
+            ChangeTracker
+                .Entries<ISoftDeletable>()
+                .Where(e => e.State == EntityState.Deleted);
 
-        foreach (Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<ISoftDeletable>? entry in entries)
+        foreach (EntityEntry<ISoftDeletable> entry in entries)
         {
-            // Отменяем физическое удаление из базы данных
             entry.State = EntityState.Modified;
 
-            // Заполняем доменные свойства мягкого удаления
-            entry.CurrentValues[nameof(ISoftDeletable.IsDeleted)] = true;
-            entry.CurrentValues[nameof(ISoftDeletable.DeletedAtUtc)] = DateTime.UtcNow;
-
-            // Если у сущности есть свойство IsActive (как у Product), его тоже выключаем [3]
-            if (entry.CurrentValues.Properties.Any(p => p.Name == "IsActive"))
+            if (!entry.Entity.IsDeleted)
             {
-                entry.CurrentValues["IsActive"] = false;
+                entry.CurrentValues[nameof(ISoftDeletable.IsDeleted)] = true;
+                entry.CurrentValues[nameof(ISoftDeletable.DeletedAtUtc)] = DateTime.UtcNow;
+
+                if (entry.CurrentValues.Properties.Any(p => p.Name == "IsActive"))
+                {
+                    entry.CurrentValues["IsActive"] = false;
+                }
             }
         }
     }

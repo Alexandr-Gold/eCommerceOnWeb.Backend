@@ -59,10 +59,7 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreatePr
                     _ => throw new InvalidOperationException(
                              "Неподдерживаемый тип атрибута.")
                 };
-
                 product.SetAttribute(attribute.Key, value);
-
-                //product.SetAttribute(attribute.Key, attribute.Value);
             }
 
             _context.Products.Add(product);
