@@ -2,6 +2,7 @@
 using eCommerceOnWeb.Backend.Domain.Common;
 using eCommerceOnWeb.Backend.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace eCommerceOnWeb.Backend.Persistence.Seed
 {
@@ -9,6 +10,7 @@ namespace eCommerceOnWeb.Backend.Persistence.Seed
     {
         public static async Task SeedAsync(
             ECommerceDbContext context,
+            ILogger logger,
             CancellationToken cancellationToken = default)
         {
             const string sku = "APL-IP16PRO-256";
@@ -17,6 +19,10 @@ namespace eCommerceOnWeb.Backend.Persistence.Seed
                     p => p.Sku == sku,
                     cancellationToken))
             {
+                logger.LogInformation(
+                     "Product with SKU {Sku} already exists. Skipped.",
+                     sku);
+
                 return;
             }
 
@@ -44,6 +50,10 @@ namespace eCommerceOnWeb.Backend.Persistence.Seed
                 true);
 
             context.Products.Add(iphone);
+
+            logger.LogInformation(
+                 "Product {Sku} added to seed.",
+                 sku);
         }
     }
 }

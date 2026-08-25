@@ -44,7 +44,14 @@ using (IServiceScope scope = app.Services.CreateScope())
 
     await context.Database.MigrateAsync();
 
-    await ECommerceDbContextSeed.SeedAsync(context);
+    ILoggerFactory loggerFactory =
+    scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+
+    await ECommerceDbContextSeed.SeedAsync(
+        context,
+        loggerFactory);
+
+    //await ECommerceDbContextSeed.SeedAsync(context);
 }
 
 app.UseHttpsRedirection();
