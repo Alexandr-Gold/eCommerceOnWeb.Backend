@@ -28,6 +28,8 @@ builder.Services.AddScoped(typeof(IReadRepository<>), typeof(EfRepository<>));
 // Регистрация сервиса генерации путей к картинкам
 builder.Services.AddScoped<IStorageService, StorageService>();
 
+builder.Services.AddHttpContextAccessor();
+
 WebApplication app = builder.Build();
 
 // Настройки Middleware (Swagger, Routing, Endpoints) остаются ниже без изменений
@@ -55,6 +57,8 @@ using (IServiceScope scope = app.Services.CreateScope())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

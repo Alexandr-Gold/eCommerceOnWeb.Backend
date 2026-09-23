@@ -13,6 +13,8 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Specifications
             int pageSize = 10,
             bool isPagingEnabled = true) // ДОБАВЛЕН Параметр по умолчанию
         {
+            Query.Include(p => p.Images);
+
             // 1. Фильтрация по Категории и Бренду
             if (categoryId.HasValue && categoryId != Guid.Empty)
             {

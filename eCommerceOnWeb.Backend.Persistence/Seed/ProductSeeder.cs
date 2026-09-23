@@ -43,12 +43,6 @@ namespace eCommerceOnWeb.Backend.Persistence.Seed
                     WeightKg: 0.35m),
                 initialStock: 15);
 
-            iphone.AddImage(
-                "products/iphone16/front.webp",
-                "Apple iPhone 16 Pro",
-                1,
-                true);
-
             context.Products.Add(iphone);
 
             logger.LogInformation(

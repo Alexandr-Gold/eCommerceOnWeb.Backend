@@ -22,7 +22,7 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProdu
         Guid CategoryId,
         Guid BrandId,
         string Description,
-        //IReadOnlyDictionary<string, object> Attributes); // ДОБАВЛЕНО ПОЛЕ ДЛЯ JSONB ХАРАКТЕРИСТИК;
+        string? MainImageUrl,
         IReadOnlyDictionary<string, object> Attributes); // ДОБАВЛЕНО ПОЛЕ ДЛЯ JSONB ХАРАКТЕРИСТИК;
 
     // Сам Query-запрос (record MediatR)
