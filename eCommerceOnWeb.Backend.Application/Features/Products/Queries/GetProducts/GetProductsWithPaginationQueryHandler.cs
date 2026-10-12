@@ -4,7 +4,7 @@ using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using eCommerceOnWeb.Backend.Domain.Common.Interfaces;
 using MediatR;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProducts
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProducts
 {
     public sealed class GetProductsWithPaginationQueryHandler
      : IRequestHandler<GetProductsWithPaginationQuery, PaginatedList<ProductDto>>
@@ -43,25 +43,22 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProdu
                 pageSize: request.PageSize);
 
             List<Product> products = await _product.ListAsync(filterSpec, cancellationToken);
-            // 3. Маппим доменные объекты в плоские DTO с учетом словаря Specifications
+
+            // 3. Маппим доменные объекты в DTO 
             List<ProductDto> productDtos = products.Select(p => new ProductDto(
                 p.Id,
                 p.Name,
                 p.Sku,
-                p.Gtin,
-                p.ModelNumber,
                 p.Price.Amount,
                 p.Price.Currency,
                 p.StockQuantity,
                 p.CategoryId,
                 p.BrandId,
-                p.Description,
                 _storageService.GetAbsoluteUrl(
                     p.Images
                         .FirstOrDefault(i => i.IsMain)?
-                        .StorageKey ?? string.Empty),
-                p.Attributes.GetValues() // 3. Маппим доменные объекты в плоские DTO с учетом словаря Specifications
-                )).ToList();               // Характеристики товара читаем из ProductAttributes.         
+                        .StorageKey ?? string.Empty)
+                )).ToList();
 
             // 4. Расчет метаданных пагинации
             int totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);

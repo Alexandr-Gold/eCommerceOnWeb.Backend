@@ -1,5 +1,6 @@
 ﻿using eCommerceOnWeb.Backend.Application.Common.Interfaces;
 using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
+using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using eCommerceOnWeb.Backend.Domain.Common;
 using eCommerceOnWeb.Backend.Domain.Exceptions;
 using MediatR;

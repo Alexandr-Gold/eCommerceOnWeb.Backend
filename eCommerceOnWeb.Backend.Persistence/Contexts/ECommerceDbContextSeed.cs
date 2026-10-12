@@ -1,4 +1,6 @@
-﻿using eCommerceOnWeb.Backend.Persistence.Seed;
+﻿using eCommerceOnWeb.Backend.Domain.Aggregates.BrandAggregate;
+using eCommerceOnWeb.Backend.Domain.Aggregates.CategoryAggregate;
+using eCommerceOnWeb.Backend.Persistence.Seed;
 using Microsoft.Extensions.Logging;
 
 namespace eCommerceOnWeb.Backend.Persistence.Contexts
@@ -16,11 +18,32 @@ namespace eCommerceOnWeb.Backend.Persistence.Contexts
             logger.LogInformation(
                 "Database seeding started.");
 
-            await ProductSeeder.SeedAsync(
-                context,
-                logger,
+            // ---------- Справочники ----------
+            Category category =
+                 await CategorySeeder.SeedAsync(
+                     context,
+                     logger,
+                     cancellationToken);
+
+            Brand brand =
+                 await BrandSeeder.SeedAsync(
+                     context,
+                     logger,
+                     cancellationToken);
+
+            // Сначала сохраняем справочники
+            await context.SaveChangesAsync(
                 cancellationToken);
 
+            // ---------- Товары ----------
+            await ProductSeeder.SeedAsync(
+                 context,
+                 logger,
+                 category,
+                 brand,
+                 cancellationToken);
+
+            // Затем сохраняем товары и изображения
             await ProductImageSeeder.SeedAsync(
                 context,
                 logger,

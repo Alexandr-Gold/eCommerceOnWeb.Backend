@@ -1,4 +1,6 @@
-﻿using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
+﻿using eCommerceOnWeb.Backend.Domain.Aggregates.BrandAggregate;
+using eCommerceOnWeb.Backend.Domain.Aggregates.CategoryAggregate;
+using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System.Text.Json;
@@ -17,6 +19,16 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
                .HasColumnName("id")
                .ValueGeneratedNever();
         builder.Ignore(p => p.DomainEvents);
+
+        builder.HasOne<Category>()
+       .WithMany()
+       .HasForeignKey(p => p.CategoryId)
+       .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Brand>()
+               .WithMany()
+               .HasForeignKey(p => p.BrandId)
+               .OnDelete(DeleteBehavior.Restrict);
 
         // --- Базовые свойства ---
         builder.Property(p => p.Name)
@@ -171,3 +183,5 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         //     .HasDatabaseName("IX_products_color");
     }
 }
+
+

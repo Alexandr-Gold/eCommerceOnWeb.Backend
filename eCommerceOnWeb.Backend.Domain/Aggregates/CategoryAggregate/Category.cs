@@ -1,44 +1,68 @@
-﻿//using eCommerceOnWeb.Backend.Domain.Common;
-//using eCommerceOnWeb.Backend.Domain.Exceptions;
+﻿using eCommerceOnWeb.Backend.Domain.Common;
+using eCommerceOnWeb.Backend.Domain.Exceptions;
 
-//namespace eCommerceOnWeb.Backend.Domain.Aggregates.CategoryAggregate
-//{
-//    public class Category : BaseEntity, IAggregateRoot, ISoftDeletable
-//    {
-//        public string Name { get; private set; } = string.Empty;
-//        public string Slug { get; private set; } = string.Empty; // URL-friendly имя (например, "smartphones")
-//        public Guid? ParentCategoryId { get; private set; }       // Для древовидной структуры
+namespace eCommerceOnWeb.Backend.Domain.Aggregates.CategoryAggregate;
+public sealed class Category
+    : BaseEntity, IAggregateRoot
+{
+    public string Name { get; private set; } = string.Empty;
 
-//        // Поля мягкого удаления
-//        public bool IsDeleted { get; private set; }
-//        public DateTime? DeletedAtUtc { get; private set; }
+    public string Slug { get; private set; } = string.Empty;
 
-//        private Category() { } // Для EF Core
+    public string? Description { get; private set; }
 
-//        public Category(string name, string slug, Guid? parentCategoryId = null)
-//        {
-//            Update(name, slug, parentCategoryId);
-//        }
+    public string? ImageStorageKey { get; private set; }
 
-//        public void Update(string name, string slug, Guid? parentCategoryId)
-//        {
-//            if (string.IsNullOrWhiteSpace(name)) throw new DomainException("Название категории не может быть пустым.");
-//            if (string.IsNullOrWhiteSpace(slug)) throw new DomainException("Slug категории не может быть пустым.");
+    public Guid? ParentCategoryId { get; private set; }
 
-//            // Защита от зацикливания: категория не может быть родителем самой себя
-//            if (parentCategoryId == Id && Id != Guid.Empty)
-//                throw new DomainException("Категория не может быть родительской для самой себя.");
+    public bool IsActive { get; private set; } = true;
 
-//            Name = name.Trim();
-//            Slug = slug.Trim().ToLower();
-//            ParentCategoryId = parentCategoryId;
-//        }
+    public int DisplayOrder { get; private set; }
 
-//        public void Delete()
-//        {
-//            if (IsDeleted) return;
-//            IsDeleted = true;
-//            DeletedAtUtc = DateTime.UtcNow;
-//        }
-//    }
-//}
+
+    private Category()
+    {
+    }
+
+
+    private Category(
+        string name,
+        string slug)
+    {
+        Name = name;
+        Slug = slug;
+    }
+
+
+    public static Category Create(
+        string name,
+        string slug)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException(
+                "Category name is required.");
+
+        if (string.IsNullOrWhiteSpace(slug))
+            throw new DomainException(
+                "Category slug is required.");
+
+        return new Category(
+            name.Trim(),
+            slug.Trim().ToLowerInvariant());
+    }
+
+
+    public void SetImage(string storageKey)
+    {
+        if (string.IsNullOrWhiteSpace(storageKey))
+            throw new DomainException("Storage key is required.");
+
+        ImageStorageKey = storageKey;
+    }
+
+
+    public void UpdateDescription(string? description)
+    {
+        Description = description?.Trim();
+    }
+}

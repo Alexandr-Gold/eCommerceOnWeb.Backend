@@ -1,9 +1,10 @@
 ﻿using eCommerceOnWeb.Backend.Application.Common.Interfaces;
+using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using eCommerceOnWeb.Backend.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProductDetails
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails
 {
 
     // 1. Меняем TResponse в интерфейсе на Result<ProductDetailsDto>
@@ -22,7 +23,7 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProdu
         public async Task<Result<ProductDetailsDto>> Handle(GetProductDetailsQuery request, CancellationToken cancellationToken)
         {
             // Извлекаем товар из БД (In-Memory логика остается)
-            Domain.Aggregates.ProductAggregate.Product? product = await _context.Products
+            Product? product = await _context.Products
                 .AsNoTracking()
                 .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
@@ -52,12 +53,12 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProdu
             // 4. Формируем и сразу возвращаем DTO (без создания лишней переменной)
             ProductDetailsDto dto = new ProductDetailsDto(
                 product.Id,
-                product.Name ?? string.Empty,
-                product.Sku ?? string.Empty,
+                product.Name,
+                product.Sku,
                 product.Price.Amount,
                 product.Price.Currency ?? "RUB",
                 product.StockQuantity,
-                product.Description ?? string.Empty,
+                product.Description,
                 product.CategoryId,
                 product.BrandId,
                 imagesDto,

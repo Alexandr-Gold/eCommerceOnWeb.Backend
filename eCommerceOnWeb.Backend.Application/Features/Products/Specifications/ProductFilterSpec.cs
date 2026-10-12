@@ -1,5 +1,6 @@
 ﻿using Ardalis.Specification;
 using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
+using Microsoft.EntityFrameworkCore;
 
 namespace eCommerceOnWeb.Backend.Application.Features.Products.Specifications
 {
@@ -13,7 +14,6 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Specifications
             int pageSize = 10,
             bool isPagingEnabled = true) // ДОБАВЛЕН Параметр по умолчанию
         {
-            Query.Include(p => p.Images);
 
             // 1. Фильтрация по Категории и Бренду
             if (categoryId.HasValue && categoryId != Guid.Empty)
@@ -29,9 +29,20 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Specifications
             // 2. Текстовый поиск по имени или SKU
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                string search = searchTerm.Trim().ToLower();
-                Query.Where(p => p.Name.ToLower().Contains(search) || p.Sku.ToLower().Contains(search));
+                string search = searchTerm.Trim();
+
+                Query.Where(p =>
+                      EF.Functions.ILike(
+                          p.Name,
+                          $"%{search}%")
+                      ||
+                      EF.Functions.ILike(
+                          p.Sku,
+                          $"%{search}%"));
             }
+
+            // связанные данные
+            Query.Include(p => p.Images);
 
             // Применяем сортировку и пагинацию, только если флаг включен
             if (isPagingEnabled)

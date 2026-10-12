@@ -1,4 +1,4 @@
-﻿namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProductDetails
+﻿namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails
 {
     // Главное DTO ответа
     public record ProductDetailsDto(

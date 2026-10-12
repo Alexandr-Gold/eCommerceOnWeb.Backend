@@ -1,4 +1,6 @@
 ﻿using eCommerceOnWeb.Backend.Application.Common.Interfaces;
+using eCommerceOnWeb.Backend.Domain.Aggregates.BrandAggregate;
+using eCommerceOnWeb.Backend.Domain.Aggregates.CategoryAggregate;
 using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using eCommerceOnWeb.Backend.Domain.Common; // ISoftDeletable лежит здесь
 using MediatR;
@@ -18,6 +20,8 @@ public class ECommerceDbContext : DbContext, IECommerceDbContext
     }
 
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Brand> Brands => Set<Brand>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -27,7 +31,8 @@ public class ECommerceDbContext : DbContext, IECommerceDbContext
         builder.Ignore<DomainEvent>();
 
         // Автоматически применяем конфигурации из вашей папки EntityTypeConfigurations
-        builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        builder.ApplyConfigurationsFromAssembly(
+            Assembly.GetExecutingAssembly());
     }
 
     public override async Task<int> SaveChangesAsync(

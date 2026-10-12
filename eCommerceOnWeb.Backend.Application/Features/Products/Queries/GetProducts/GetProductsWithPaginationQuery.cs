@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProducts
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProducts
 {
     // Обертка для ответа пагинации
     public sealed record PaginatedList<T>(IReadOnlyCollection<T> Items, int PageIndex, int TotalPages, int TotalCount)
@@ -14,16 +14,12 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProdu
         Guid Id,
         string Name,
         string Sku,
-        string? Gtin,
-        string ModelNumber,
         decimal PriceAmount,
         string PriceCurrency,
         int StockQuantity,
         Guid CategoryId,
         Guid BrandId,
-        string Description,
-        string? MainImageUrl,
-        IReadOnlyDictionary<string, object> Attributes); // ДОБАВЛЕНО ПОЛЕ ДЛЯ JSONB ХАРАКТЕРИСТИК;
+        string? MainImageUrl);
 
     // Сам Query-запрос (record MediatR)
     public sealed record GetProductsWithPaginationQuery(

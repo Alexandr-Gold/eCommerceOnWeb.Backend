@@ -1,4 +1,6 @@
-﻿using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
+﻿using eCommerceOnWeb.Backend.Domain.Aggregates.BrandAggregate;
+using eCommerceOnWeb.Backend.Domain.Aggregates.CategoryAggregate;
+using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using eCommerceOnWeb.Backend.Domain.Common;
 using eCommerceOnWeb.Backend.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -11,17 +13,20 @@ namespace eCommerceOnWeb.Backend.Persistence.Seed
         public static async Task SeedAsync(
             ECommerceDbContext context,
             ILogger logger,
+            Category category,
+            Brand brand,
             CancellationToken cancellationToken = default)
         {
             const string sku = "APL-IP16PRO-256";
+
 
             if (await context.Products.AnyAsync(
                     p => p.Sku == sku,
                     cancellationToken))
             {
                 logger.LogInformation(
-                     "Product with SKU {Sku} already exists. Skipped.",
-                     sku);
+                    "Product with SKU {Sku} already exists. Skipped.",
+                    sku);
 
                 return;
             }
@@ -32,8 +37,8 @@ namespace eCommerceOnWeb.Backend.Persistence.Seed
                 gtin: "1234567890123",
                 modelNumber: "A3293",
                 price: new Money(1499m, "USD"),
-                categoryId: SeedIds.SmartphonesCategoryId,
-                brandId: SeedIds.AppleBrandId,
+                categoryId: category.Id,
+                brandId: brand.Id,
                 description: "Флагманский смартфон Apple с OLED-дисплеем.",
                 warrantyMonths: 24,
                 shippingDimensions: new Dimensions(
@@ -43,11 +48,21 @@ namespace eCommerceOnWeb.Backend.Persistence.Seed
                     WeightKg: 0.35m),
                 initialStock: 15);
 
+            // Характеристики товара
+            iphone.SetAttribute("Display", "6.3-inch Super Retina XDR OLED");
+            iphone.SetAttribute("Processor", "Apple A18 Pro");
+            iphone.SetAttribute("RAM", "8 GB");
+            iphone.SetAttribute("Storage", "256 GB");
+            iphone.SetAttribute("Color", "Desert Titanium");
+            iphone.SetAttribute("OperatingSystem", "iOS 26");
+            iphone.SetAttribute("Connectivity", "5G");
+            iphone.SetAttribute("WaterResistance", "IP68");
+
             context.Products.Add(iphone);
 
             logger.LogInformation(
-                 "Product {Sku} added to seed.",
-                 sku);
+                "Product {Sku} added to seed.",
+                sku);
         }
     }
 }

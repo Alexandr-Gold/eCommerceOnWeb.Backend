@@ -52,8 +52,6 @@ using (IServiceScope scope = app.Services.CreateScope())
     await ECommerceDbContextSeed.SeedAsync(
         context,
         loggerFactory);
-
-    //await ECommerceDbContextSeed.SeedAsync(context);
 }
 
 app.UseHttpsRedirection();

@@ -68,15 +68,28 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 
         // --- МЕТОДЫ УПРАВЛЕНИЯ ИЗОБРАЖЕНИЯМИ (Инварианты галереи) ---
 
-        public void AddImage(string url, string altText, int displayOrder, bool setAsMain = false)
+        public void AddImage(
+             string storageKey,
+             string altText,
+             int displayOrder,
+             bool setAsMain = false)
         {
-            if (_images.Any(i => i.StorageKey.Equals(url, StringComparison.OrdinalIgnoreCase)))
-                throw new DomainException("Такое изображение уже добавлено к товару.");
+            if (_images.Any(i =>
+                i.StorageKey.Equals(
+                    storageKey,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new DomainException(
+                    "Такое изображение уже добавлено к товару.");
+            }
 
-            ProductImage image = new ProductImage(url, altText, displayOrder);
+            ProductImage image = new ProductImage(
+                storageKey,
+                altText,
+                displayOrder);
+
             _images.Add(image);
 
-            // Если это первое фото или передан флаг setAsMain — делаем его главным [1, 2]
             if (setAsMain || _images.Count == 1)
             {
                 SetMainImage(image.Id);
