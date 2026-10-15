@@ -33,6 +33,6 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreatePr
         decimal DimDepthCm,
         decimal DimWeightKg,
         int InitialStock,
-        List<ProductAttributeDto> Attributes) : IRequest<Result<Guid>>;
+        IReadOnlyCollection<ProductAttributeDto> Attributes) : IRequest<Result<Guid>>;
 }
 

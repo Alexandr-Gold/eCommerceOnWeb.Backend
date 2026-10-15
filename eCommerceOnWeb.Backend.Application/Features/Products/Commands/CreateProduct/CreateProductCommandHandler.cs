@@ -1,6 +1,5 @@
 ﻿using eCommerceOnWeb.Backend.Application.Common.Interfaces;
 using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
-using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using eCommerceOnWeb.Backend.Domain.Common;
 using eCommerceOnWeb.Backend.Domain.Exceptions;
 using MediatR;
@@ -57,8 +56,8 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreatePr
                     JsonValueKind.True => true,
                     JsonValueKind.False => false,
                     JsonValueKind.Null => throw new DomainException("Атрибут не может иметь значение null."),
-                    _ => throw new InvalidOperationException(
-                             "Неподдерживаемый тип атрибута.")
+                    _ => throw new DomainException(
+                             "Неподдерживаемый тип значения атрибута.")
                 };
                 product.SetAttribute(attribute.Key, value);
             }
