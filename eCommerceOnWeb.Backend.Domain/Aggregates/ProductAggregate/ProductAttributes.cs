@@ -3,6 +3,19 @@ using System.Text.Json.Serialization;
 
 namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 {
+    //    Важно:
+    //ProductAttributes сейчас является временным production-friendly MVP решением,
+    //а не окончательной моделью каталога.
+
+    //Не расширять его до сложной бизнес-логики.
+    //Если появятся:
+    //- фильтры по характеристикам;
+    //- фасетный поиск;
+    //- админка характеристик;
+    //- разные наборы характеристик для категорий;
+
+    //тогда создавать отдельную модель Attribute Catalog.
+
     public record ProductAttributes
     {
         private readonly Dictionary<string, object> _values;

@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct;
+using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace eCommerceOnWeb.Backend.Application
 {
@@ -12,6 +14,9 @@ namespace eCommerceOnWeb.Backend.Application
                 cfg.RegisterServicesFromAssembly(
                     typeof(DependencyInjection).Assembly);
             });
+
+            services.AddValidatorsFromAssembly(
+                typeof(CreateProductCommandValidator).Assembly);
 
             return services;
         }

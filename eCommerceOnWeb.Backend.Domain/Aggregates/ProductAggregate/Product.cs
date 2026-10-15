@@ -4,6 +4,28 @@ using eCommerceOnWeb.Backend.Domain.Exceptions;
 
 namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 {
+
+    //    Create()
+    //AddImage()
+    //SetAttribute()
+    //ChangePrice()
+    //DeductStock()
+    //Restock()
+    //Delete()
+
+    //Нельзя изменять свойства напрямую из Application слоя.
+
+    //Product публикует Domain Events:
+    //- ProductCreatedEvent
+    //- ProductPriceChangedEvent
+    //- ProductAttributeChangedEvent
+    //- ProductDeletedEvent
+
+    //Текущая публикация Domain Events выполняется через DbContext.
+    //Перед критическими сценариями (Cart / Order / Payment)
+    //перейти на:
+    //EF Core SaveChangesInterceptor + Outbox Pattern.
+
     public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
     {
         // --- Базовые свойства ---
