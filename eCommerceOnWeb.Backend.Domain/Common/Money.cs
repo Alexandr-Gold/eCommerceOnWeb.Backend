@@ -4,18 +4,42 @@ namespace eCommerceOnWeb.Backend.Domain.Common
 {
     public record Money(decimal Amount, string Currency)
     {
-        public static Money Zero() => new(0, "RUB");
+        private const string DefaultCurrency = "USD";
 
-        // Инвариант: цена не может быть отрицательной
-        public static Money Create(decimal amount, string currency)
+        private static readonly HashSet<string> SupportedCurrencies =
+        [
+            "USD",
+            "EUR",
+            "RUB"
+        ];
+
+        public static Money Zero() =>
+            new(0, DefaultCurrency);
+
+        // Инвариант: цена не может быть отрицательной,
+        // валюта должна быть поддерживаемой.
+        public static Money Create(
+            decimal amount,
+            string currency)
         {
             if (amount < 0)
-                throw new DomainException("Сумма не может быть отрицательной.");
+                throw new DomainException(
+                    "Сумма не может быть отрицательной.");
 
-            if (string.IsNullOrWhiteSpace(currency) || currency.Length != 3)
-                throw new DomainException("Некорректный ISO код валюты.");
+            if (string.IsNullOrWhiteSpace(currency))
+                throw new DomainException(
+                    "Код валюты не может быть пустым.");
 
-            return new Money(amount, currency.ToUpperInvariant());
+            string normalizedCurrency =
+                currency.ToUpperInvariant();
+
+            if (!SupportedCurrencies.Contains(normalizedCurrency))
+                throw new DomainException(
+                    $"Валюта '{currency}' не поддерживается.");
+
+            return new Money(
+                amount,
+                normalizedCurrency);
         }
     }
 }

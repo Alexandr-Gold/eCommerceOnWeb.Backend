@@ -1,5 +1,7 @@
-﻿using eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct;
+﻿using eCommerceOnWeb.Backend.Application.Common.Behaviors;
+using eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct;
 using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace eCommerceOnWeb.Backend.Application
@@ -17,6 +19,10 @@ namespace eCommerceOnWeb.Backend.Application
 
             services.AddValidatorsFromAssembly(
                 typeof(CreateProductCommandValidator).Assembly);
+
+            services.AddTransient(
+                typeof(IPipelineBehavior<,>),
+                typeof(ValidationBehavior<,>));
 
             return services;
         }

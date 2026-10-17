@@ -4,6 +4,7 @@ using eCommerceOnWeb.Backend.Domain.Common.Interfaces;
 using eCommerceOnWeb.Backend.Persistence;
 using eCommerceOnWeb.Backend.Persistence.Contexts; // Подключаем слой инфраструктуры
 using eCommerceOnWeb.Backend.Persistence.Services;
+using eCommerceOnWeb.Backend.WebApi.Common.Exceptions;
 using Microsoft.EntityFrameworkCore;
 ;
 
@@ -14,10 +15,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddApplication();
-
-builder.Services.AddPersistence(
-    builder.Configuration);
+builder.Services
+    .AddApplication()
+    .AddPersistence(builder.Configuration);
 
 // Регистрация репозитория для операций Записи и Чтения
 builder.Services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
@@ -27,6 +27,9 @@ builder.Services.AddScoped(typeof(IReadRepository<>), typeof(EfRepository<>));
 
 // Регистрация сервиса генерации путей к картинкам
 builder.Services.AddScoped<IStorageService, StorageService>();
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 builder.Services.AddHttpContextAccessor();
 
@@ -54,6 +57,7 @@ using (IServiceScope scope = app.Services.CreateScope())
         loggerFactory);
 }
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAuthentication();
