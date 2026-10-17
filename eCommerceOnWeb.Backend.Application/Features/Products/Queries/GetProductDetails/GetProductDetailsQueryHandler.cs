@@ -31,7 +31,8 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProduc
             // 3. Вместо return null возвращаем типизированную ошибку сбоя бизнес-логики
             if (product == null)
             {
-                return Result<ProductDetailsDto>.Failure(ProductErrors.NotFound(request.Id));
+                return Result<ProductDetailsDto>.Failure(
+                    ProductErrors.NotFound(request.Id));
             }
 
             // Вся работа со ссылками в памяти остается БЕЗ изменений
