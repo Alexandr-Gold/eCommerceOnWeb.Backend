@@ -3,6 +3,7 @@ using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using eCommerceOnWeb.Backend.Domain.Common;
 using eCommerceOnWeb.Backend.Domain.Exceptions;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct
@@ -21,6 +22,31 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreatePr
             CreateProductCommand request,
             CancellationToken cancellationToken)
         {
+            bool skuExists = await _context.Products
+         .AnyAsync(
+             p => p.Sku == request.Sku.ToUpperInvariant(),
+             cancellationToken);
+
+            if (skuExists)
+            {
+                return Result<Guid>.Failure(
+                    ProductErrors.SkuAlreadyExists(request.Sku));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Gtin))
+            {
+                bool gtinExists = await _context.Products
+                    .AnyAsync(
+                        p => p.Gtin == request.Gtin,
+                        cancellationToken);
+
+                if (gtinExists)
+                {
+                    return Result<Guid>.Failure(
+                        ProductErrors.GtinAlreadyExists(request.Gtin));
+                }
+            }
+
             Money price = Money.Create(
                 request.PriceAmount,
                 request.PriceCurrency);

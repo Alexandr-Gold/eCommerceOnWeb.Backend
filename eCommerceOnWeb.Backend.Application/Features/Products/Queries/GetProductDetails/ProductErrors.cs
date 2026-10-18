@@ -5,6 +5,15 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProduc
     public static class ProductErrors
     {
         public static Error NotFound(Guid id) =>
-            new("Products.NotFound", $"Товар с идентификатором {id} не найден.");
+            new("Products.NotFound", $"Товар с идентификатором {id}" +
+                $" не найден.");
+
+        public static Error SkuAlreadyExists(string sku) =>
+            new("Products.SkuAlreadyExists", $"Товар с артикулом {sku} " +
+                $"уже существует.");
+
+        public static Error GtinAlreadyExists(string gtin) =>
+            new("Products.GtinAlreadyExists", $"Товар с GTIN {gtin} " +
+                $"уже существует.");
     }
 }
