@@ -37,7 +37,7 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 
         // --- Специфика электроники ---
         public int WarrantyMonths { get; private set; } // Гарантия в месяцах (0 - без гарантии)
-        public Dimensions ShippingDimensions { get; private set; } = Dimensions.Zero(); // Габариты для СДЭК/Почты
+        public Dimensions ShippingDimensions { get; private set; } = null!;
         public int StockQuantity { get; private set; }
         public bool IsActive { get; private set; } = true;
 

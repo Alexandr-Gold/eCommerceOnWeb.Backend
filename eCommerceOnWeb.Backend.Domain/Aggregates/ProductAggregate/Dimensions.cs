@@ -2,15 +2,51 @@
 
 namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 {
-    public record Dimensions(decimal WidthCm, decimal HeightCm, decimal DepthCm, decimal WeightKg)
+    // Приватный конструктор.
+    // Создание Dimensions разрешено только через фабричный метод Create(),
+    // чтобы гарантировать выполнение доменных инвариантов.
+    // Любой экземпляр Dimensions должен быть валидным.
+    public record Dimensions
     {
-        public static Dimensions Zero() => new(0, 0, 0, 0);
+        public decimal WidthCm { get; init; }
+        public decimal HeightCm { get; init; }
+        public decimal DepthCm { get; init; }
+        public decimal WeightKg { get; init; }
 
-        // Инвариант: размеры техники не могут быть нулевыми или отрицательными при валидации
-        public void EnsureValidForShipping()
+        private Dimensions(
+            decimal widthCm,
+            decimal heightCm,
+            decimal depthCm,
+            decimal weightKg)
         {
-            if (WidthCm <= 0 || HeightCm <= 0 || DepthCm <= 0 || WeightKg <= 0)
-                throw new DomainException("Габариты и вес для доставки электроники должны быть больше нуля.");
+            WidthCm = widthCm;
+            HeightCm = heightCm;
+            DepthCm = depthCm;
+            WeightKg = weightKg;
+        }
+
+
+        public static Dimensions Create(
+            decimal widthCm,
+            decimal heightCm,
+            decimal depthCm,
+            decimal weightKg)
+        {
+            if (widthCm <= 0 ||
+                heightCm <= 0 ||
+                depthCm <= 0 ||
+                weightKg <= 0)
+            {
+                throw new DomainException(
+                    "Габариты и вес для доставки электроники должны быть больше нуля.");
+            }
+
+            return new Dimensions(
+                widthCm,
+                heightCm,
+                depthCm,
+                weightKg);
         }
     }
 }
+

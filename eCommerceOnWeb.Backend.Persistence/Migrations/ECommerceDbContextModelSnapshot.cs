@@ -152,9 +152,8 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
 
                     b.Property<string>("Gtin")
                         .HasMaxLength(13)
-                        .HasColumnType("character(13)")
-                        .HasColumnName("gtin")
-                        .IsFixedLength();
+                        .HasColumnType("character varying(13)")
+                        .HasColumnName("gtin");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
@@ -202,10 +201,12 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("Gtin")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_products_gtin");
 
                     b.HasIndex("Sku")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_products_sku");
 
                     b.ToTable("products", (string)null);
                 });

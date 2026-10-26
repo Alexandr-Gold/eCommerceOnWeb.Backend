@@ -48,8 +48,7 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.Property(p => p.Gtin)
                .HasColumnName("gtin")
-               .HasMaxLength(13)
-               .IsFixedLength(true);
+               .HasMaxLength(13);
 
         builder.Property(p => p.WarrantyMonths)
                .HasColumnName("warranty_months")
@@ -64,9 +63,16 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
                .IsRequired();
 
         // --- Индексы ---
-        builder.HasIndex(p => p.Sku).IsUnique();
-        builder.HasIndex(p => p.Gtin).IsUnique();
+        builder.HasIndex(p => p.Sku)
+        .IsUnique()
+        .HasDatabaseName("IX_products_sku");
+
+        builder.HasIndex(p => p.Gtin)
+               .IsUnique()
+               .HasDatabaseName("IX_products_gtin");
+
         builder.HasIndex(p => p.CategoryId);
+
         builder.HasIndex(p => p.BrandId);
 
         // 1. Сначала полностью конфигурируем свойство в БД

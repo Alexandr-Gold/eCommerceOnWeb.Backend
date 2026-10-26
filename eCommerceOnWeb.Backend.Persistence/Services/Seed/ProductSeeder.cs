@@ -32,21 +32,21 @@ namespace eCommerceOnWeb.Backend.Persistence.Seed
             }
 
             Product iphone = Product.Create(
-                name: "Apple iPhone 16 Pro 256GB",
-                sku: sku,
-                gtin: "1234567890123",
-                modelNumber: "A3293",
-                price: new Money(1499m, "USD"),
-                categoryId: category.Id,
-                brandId: brand.Id,
-                description: "Флагманский смартфон Apple с OLED-дисплеем.",
-                warrantyMonths: 24,
-                shippingDimensions: new Dimensions(
-                    WidthCm: 8,
-                    HeightCm: 16,
-                    DepthCm: 2,
-                    WeightKg: 0.35m),
-                initialStock: 15);
+             name: "Apple iPhone 16 Pro 256GB",
+             sku: sku,
+             gtin: "1234567890123",
+             modelNumber: "A3293",
+             price: Money.Create(1499m, "USD"),
+             categoryId: category.Id,
+             brandId: brand.Id,
+             description: "Флагманский смартфон Apple с OLED-дисплеем.",
+             warrantyMonths: 24,
+             shippingDimensions: Dimensions.Create(
+                 widthCm: 8,
+                 heightCm: 16,
+                 depthCm: 2,
+                 weightKg: 0.35m),
+             initialStock: 15);
 
             // Характеристики товара
             iphone.SetAttribute("Display", "6.3-inch Super Retina XDR OLED");

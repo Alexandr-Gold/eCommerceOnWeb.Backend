@@ -48,16 +48,14 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreatePr
             }
 
             Money price = Money.Create(
-                request.PriceAmount,
-                request.PriceCurrency);
+                 request.PriceAmount,
+                 request.PriceCurrency);
 
-            Dimensions dimensions = new Dimensions(
+            Dimensions dimensions = Dimensions.Create(
                 request.DimWidthCm,
                 request.DimHeightCm,
                 request.DimDepthCm,
                 request.DimWeightKg);
-
-            dimensions.EnsureValidForShipping();
 
             Product product = Product.Create(
                 request.Name,

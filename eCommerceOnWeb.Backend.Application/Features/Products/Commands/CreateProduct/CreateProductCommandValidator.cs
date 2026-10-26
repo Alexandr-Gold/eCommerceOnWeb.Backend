@@ -2,7 +2,6 @@
 
 namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct
 {
-
     /// <summary>
     /// Валидатор входящих данных для команды создания продукта.
     /// Проверяет структуру и технические ограничения входного запроса
