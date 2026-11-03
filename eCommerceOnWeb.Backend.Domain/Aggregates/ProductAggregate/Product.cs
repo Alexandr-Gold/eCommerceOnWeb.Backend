@@ -49,9 +49,11 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 
         // --- Инкапсулированные коллекции (DDD-стиль) ---
         private readonly List<ProductImage> _images = new();
-        public IReadOnlyCollection<ProductImage> Images => _images.OrderBy(i => i.DisplayOrder).ToList().AsReadOnly();
+        public IReadOnlyCollection<ProductImage> Images =>
+            _images.AsReadOnly();
 
-        public ProductAttributes Attributes { get; private set; } = ProductAttributes.Empty();
+        public ProductAttributes Attributes { get; private set; }
+            = ProductAttributes.Empty();
 
         // --- Софт-делит ---
         public bool IsDeleted { get; private set; }
@@ -72,17 +74,26 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
             Dimensions shippingDimensions,
             int initialStock = 0)
         {
-            ValidateBasicAttributes(name, sku, modelNumber, categoryId, brandId);
-            if (warrantyMonths < 0) throw new DomainException("Гарантия не может быть отрицательной.");
+            ValidateBasicAttributes(name, sku, modelNumber, categoryId,
+                brandId);
 
-            Name = name;
-            Sku = sku.ToUpper();
-            Gtin = gtin;
-            ModelNumber = modelNumber;
+            if (warrantyMonths < 0) throw new DomainException(
+                "Гарантия не может быть отрицательной.");
+
+            if (initialStock < 0)
+                throw new DomainException(
+                    "Начальный запас не может быть отрицательным.");
+
+            Name = name.Trim();
+            Sku = sku.Trim().ToUpperInvariant();
+            Gtin = string.IsNullOrWhiteSpace(gtin)
+                 ? null
+                 : gtin.Trim();
+            ModelNumber = modelNumber.Trim();
             Price = price ?? throw new ArgumentNullException(nameof(price));
             CategoryId = categoryId;
             BrandId = brandId;
-            Description = description;
+            Description = description?.Trim() ?? string.Empty;
             WarrantyMonths = warrantyMonths;
             ShippingDimensions = shippingDimensions ?? throw new ArgumentNullException(nameof(shippingDimensions));
             StockQuantity = initialStock;
@@ -91,27 +102,34 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
         // --- МЕТОДЫ УПРАВЛЕНИЯ ИЗОБРАЖЕНИЯМИ (Инварианты галереи) ---
 
         public void AddImage(
-             string storageKey,
-             string altText,
-             int displayOrder,
-             bool setAsMain = false)
+            string storageKey,
+            string altText,
+            int displayOrder,
+            bool setAsMain = false)
         {
-            if (_images.Any(i =>
-                i.StorageKey.Equals(
-                    storageKey,
-                    StringComparison.OrdinalIgnoreCase)))
+            if (string.IsNullOrWhiteSpace(storageKey))
+                throw new DomainException("Storage Key изображения обязателен.");
+
+            // Нормализуем ключ до любых проверок, чтобы отсечь скрытые дубликаты с пробелами
+            string normalizedStorageKey = storageKey.Trim();
+
+            if (_images.Any(i => i.StorageKey.Equals(normalizedStorageKey, StringComparison.OrdinalIgnoreCase)))
             {
-                throw new DomainException(
-                    "Такое изображение уже добавлено к товару.");
+                throw new DomainException("Такое изображение уже добавлено к товару.");
             }
 
+            // Передаем уже очищенный ключ в конструктор сущности
             ProductImage image = new ProductImage(
-                storageKey,
+                normalizedStorageKey,
                 altText,
                 displayOrder);
 
             _images.Add(image);
 
+            SortImages();
+            //_images.Sort((x, y) => x.DisplayOrder.CompareTo(y.DisplayOrder)); // Хранит коллекцию всегда отсортированной в памяти
+
+            // Если передан флаг setAsMain или это вообще первая картинка товара, делаем её главной
             if (setAsMain || _images.Count == 1)
             {
                 SetMainImage(image.Id);
@@ -120,8 +138,11 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 
         public void SetMainImage(Guid imageId)
         {
-            ProductImage? targetImage = _images.FirstOrDefault(i => i.Id == imageId);
-            if (targetImage == null) throw new DomainException("Изображение не найдено в галерее товара.");
+            ProductImage? targetImage = _images.FirstOrDefault(
+                i => i.Id == imageId);
+
+            if (targetImage == null) throw new DomainException(
+                "Изображение не найдено в галерее товара.");
 
             // Сбрасываем флаг главного у всех и ставим выбранному [1, 2]
             foreach (ProductImage img in _images)
@@ -138,10 +159,14 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 
             _images.Remove(image);
 
-            // Если удалили главное фото, автоматически назначаем главным первое оставшееся [1, 2]
+            SortImages();
+            //_images.Sort((x, y) => x.DisplayOrder.CompareTo(y.DisplayOrder)); // Хранит коллекцию всегда отсортированной в памяти
+
             if (image.IsMain && _images.Any())
             {
-                _images.First().IsMain = true;
+                ProductImage newMainImage = _images.First();
+
+                newMainImage.IsMain = true;
             }
         }
 
@@ -150,8 +175,18 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
         public void UpdateDescription(string description)
         {
             if (string.IsNullOrWhiteSpace(description))
-                throw new ArgumentException("Description cannot be empty", nameof(description));
-            Description = description;
+                throw new DomainException(
+                    "Описание товара не может быть пустым.");
+
+            string normalizedDescription = description.Trim();
+
+            if (Description.Equals(
+                    normalizedDescription,
+                    StringComparison.Ordinal))
+
+                return;
+
+            Description = normalizedDescription;
         }
 
         // Установить или обновить атрибут
@@ -159,14 +194,30 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
         {
             object? oldValue = GetAttribute<object>(key);
             Attributes = Attributes.SetValue(key, value);
-            AddDomainEvent(new ProductAttributeChangedEvent(Id, key, oldValue, value));
+            AddDomainEvent(
+                new ProductAttributeChangedEvent(
+                Id,
+                key,
+                oldValue,
+                value));
         }
 
         // Удалить атрибут
         public void RemoveAttribute(string key)
         {
-            // Опционально: событие
+            object? oldValue = GetAttribute<object>(key);
+
+            if (oldValue is null)
+                return;
+
             Attributes = Attributes.RemoveValue(key);
+
+            AddDomainEvent(
+                new ProductAttributeChangedEvent(
+                    Id,
+                    key,
+                    oldValue,
+                    null));
         }
 
         // Получить значение атрибута (для внутренних нужд)
@@ -174,36 +225,62 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 
         public void UpdateShippingDimensions(Dimensions newDimensions)
         {
-            ShippingDimensions = newDimensions ?? throw new ArgumentNullException(nameof(newDimensions));
+            ArgumentNullException.ThrowIfNull(newDimensions);
+
+            if (ShippingDimensions.Equals(newDimensions))
+                return;
+
+            ShippingDimensions = newDimensions;
         }
 
         public void UpdateWarranty(int months)
         {
-            if (months < 0) throw new DomainException("Срок гарантии указан неверно.");
+            if (months < 0)
+                throw new DomainException("Срок гарантии указан неверно.");
+
+            if (WarrantyMonths == months)
+                return;
+
             WarrantyMonths = months;
         }
 
         public void ChangePrice(Money newPrice)
         {
-            if (newPrice == null) throw new ArgumentNullException(nameof(newPrice));
-            if (Price.Equals(newPrice)) return;
+            if (newPrice == null) throw new ArgumentNullException(
+                nameof(newPrice));
+
+            if (Price == newPrice) return;
 
             Money oldPrice = Price;
             Price = newPrice;
 
-            AddDomainEvent(new ProductPriceChangedEvent(Id, oldPrice, newPrice));
+            AddDomainEvent(new ProductPriceChangedEvent(
+                Id,
+                oldPrice,
+                newPrice));
         }
 
         public void DeductStock(int quantity)
         {
-            if (quantity <= 0) throw new DomainException("Количество должно быть больше нуля.");
-            if (StockQuantity < quantity) throw new DomainException("Недостаточно товара на складе.");
+            if (quantity <= 0) throw new DomainException(
+                "Количество должно быть больше нуля.");
+
+            if (StockQuantity < quantity) throw new DomainException(
+                "Недостаточно товара на складе.");
+
             StockQuantity -= quantity;
         }
 
         public void Restock(int quantity)
         {
-            if (quantity <= 0) throw new DomainException("Количество должно быть больше нуля.");
+            if (quantity <= 0)
+                throw new DomainException(
+                    "Количество должно быть больше нуля.");
+
+            if (StockQuantity > int.MaxValue - quantity)
+                throw new DomainException(
+                    "Превышено максимальное количество товара.");
+
             StockQuantity += quantity;
         }
 
@@ -247,19 +324,38 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
         public void Delete()
         {
             if (IsDeleted) return;
+
             IsDeleted = true;
             IsActive = false;
             DeletedAtUtc = DateTime.UtcNow;
+
             AddDomainEvent(new ProductDeletedEvent(Id));
         }
 
-        private static void ValidateBasicAttributes(string name, string sku, string modelNumber, Guid categoryId, Guid brandId)
+        // Для AddImage, RemoveImage
+        private void SortImages()
         {
-            if (string.IsNullOrWhiteSpace(name)) throw new DomainException("Имя товара обязательно.");
-            if (string.IsNullOrWhiteSpace(sku)) throw new DomainException("SKU товара обязателен.");
-            if (string.IsNullOrWhiteSpace(modelNumber)) throw new DomainException("Партномер (Model Number) обязателен для электроники.");
-            if (categoryId == Guid.Empty) throw new DomainException("Категория обязательна.");
-            if (brandId == Guid.Empty) throw new DomainException("Бренд обязателен.");
+            _images.Sort(
+                (x, y) => x.DisplayOrder.CompareTo(y.DisplayOrder));
+        }
+
+        private static void ValidateBasicAttributes(
+            string name,
+            string sku,
+            string modelNumber,
+            Guid categoryId,
+            Guid brandId)
+        {
+            if (string.IsNullOrWhiteSpace(name)) throw new DomainException(
+                "Название товара обязательно.");
+            if (string.IsNullOrWhiteSpace(sku)) throw new DomainException(
+                "SKU товара обязателен.");
+            if (string.IsNullOrWhiteSpace(modelNumber)) throw new DomainException(
+                "Партномер (Model Number) обязателен для электроники.");
+            if (categoryId == Guid.Empty) throw new DomainException(
+                "Категория обязательна.");
+            if (brandId == Guid.Empty) throw new DomainException(
+                "Бренд обязателен.");
         }
     }
 }
