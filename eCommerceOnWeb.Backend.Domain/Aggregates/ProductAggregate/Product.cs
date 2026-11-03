@@ -39,7 +39,11 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
         public int WarrantyMonths { get; private set; } // Гарантия в месяцах (0 - без гарантии)
         public Dimensions ShippingDimensions { get; private set; } = null!;
         public int StockQuantity { get; private set; }
-        public bool IsActive { get; private set; } = true;
+
+        // Бизнес-состояние товара.
+        // На текущем этапе enum.
+        // При усложнении жизненного цикла возможен переход на Smart Enum.
+        public ProductStatus Status { get; private set; }
 
         // --- Связи по ID ---
         public Guid CategoryId { get; private set; }
@@ -97,6 +101,7 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
             WarrantyMonths = warrantyMonths;
             ShippingDimensions = shippingDimensions ?? throw new ArgumentNullException(nameof(shippingDimensions));
             StockQuantity = initialStock;
+            Status = ProductStatus.Draft;
         }
 
         // --- МЕТОДЫ УПРАВЛЕНИЯ ИЗОБРАЖЕНИЯМИ (Инварианты галереи) ---
@@ -269,6 +274,12 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
                 "Недостаточно товара на складе.");
 
             StockQuantity -= quantity;
+
+            if (StockQuantity == 0)
+            {
+                AddDomainEvent(
+                    new ProductOutOfStockEvent(Id));
+            }
         }
 
         public void Restock(int quantity)
@@ -323,13 +334,15 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 
         public void Delete()
         {
-            if (IsDeleted) return;
+
+            if (IsDeleted)
+                return;
 
             IsDeleted = true;
-            IsActive = false;
             DeletedAtUtc = DateTime.UtcNow;
 
-            AddDomainEvent(new ProductDeletedEvent(Id));
+            AddDomainEvent(
+                new ProductDeletedEvent(Id));
         }
 
         // Для AddImage, RemoveImage

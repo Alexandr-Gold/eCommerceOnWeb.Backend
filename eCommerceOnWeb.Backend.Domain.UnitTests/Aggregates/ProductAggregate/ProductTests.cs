@@ -29,8 +29,58 @@ namespace eCommerceOnWeb.Backend.Domain.UnitTests.Aggregates.ProductAggregate
             product.Price.Amount.Should().Be(999.00m);
             product.StockQuantity.Should().Be(5);
             product.WarrantyMonths.Should().Be(12);
-            product.IsActive.Should().BeTrue();
+            product.Status.Should().Be(ProductStatus.Draft);
             product.IsDeleted.Should().BeFalse();
+        }
+        [Fact]
+        public void Create_ShouldAddProductCreatedDomainEvent()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct(
+                    sku: "IPH-15PRO-128");
+
+            // Act
+            IReadOnlyCollection<DomainEvent> events =
+                product.DomainEvents;
+
+            // Assert
+            events.Should()
+                .ContainSingle();
+
+            ProductCreatedEvent domainEvent =
+                events
+                    .Single()
+                    .Should()
+                    .BeOfType<ProductCreatedEvent>()
+                    .Subject;
+
+            domainEvent.ProductId
+                .Should()
+                .Be(product.Id);
+
+            domainEvent.Sku
+                .Should()
+                .Be("IPH-15PRO-128");
+
+            domainEvent.Price
+                .Should()
+                .Be(product.Price);
+        }
+
+        [Fact]
+        public void Create_ShouldInitializeStatusAsDraft()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            // Act
+            ProductStatus status = product.Status;
+
+            // Assert
+            status.Should()
+                .Be(ProductStatus.Draft);
         }
 
         [Fact]
@@ -1123,13 +1173,21 @@ namespace eCommerceOnWeb.Backend.Domain.UnitTests.Aggregates.ProductAggregate
             Product product =
                 ProductTestData.CreateValidProduct();
 
+            ProductStatus initialStatus =
+                product.Status;
+
             // Act
             product.Delete();
 
             // Assert
-            product.IsDeleted.Should().BeTrue();
-            product.IsActive.Should().BeFalse();
-            product.DeletedAtUtc.Should().NotBeNull();
+            product.IsDeleted.Should()
+                .BeTrue();
+
+            product.DeletedAtUtc.Should()
+                .NotBeNull();
+
+            product.Status.Should()
+                .Be(initialStatus);
         }
 
         [Fact]
@@ -1182,14 +1240,24 @@ namespace eCommerceOnWeb.Backend.Domain.UnitTests.Aggregates.ProductAggregate
             int eventsCount =
                 product.DomainEvents.Count;
 
+            ProductStatus status =
+                product.Status;
+
             // Act
             product.Delete();
 
             // Assert
-            product.IsDeleted.Should().BeTrue();
-            product.IsActive.Should().BeFalse();
-            product.DeletedAtUtc.Should().Be(deletedAt);
-            product.DomainEvents.Should().HaveCount(eventsCount);
+            product.IsDeleted.Should()
+                .BeTrue();
+
+            product.DeletedAtUtc.Should()
+                .Be(deletedAt);
+
+            product.Status.Should()
+                .Be(status);
+
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount);
         }
     }
 }

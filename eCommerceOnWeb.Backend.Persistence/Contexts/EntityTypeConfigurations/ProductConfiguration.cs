@@ -58,9 +58,10 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
                .HasColumnName("stock_quantity")
                .IsRequired();
 
-        builder.Property(p => p.IsActive)
-               .HasColumnName("is_active")
-               .IsRequired();
+        builder.Property(p => p.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .IsRequired();
 
         // --- Индексы ---
         builder.HasIndex(p => p.Sku)

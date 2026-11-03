@@ -2,5 +2,7 @@
 
 namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate.Events
 {
-    public record ProductOutOfStockEvent(Guid ProductId) : DomainEvent;
+    // ProductOutOfStockEvent относится к складскому состоянию.
+    public record ProductOutOfStockEvent(
+        Guid ProductId) : DomainEvent;
 }
