@@ -1259,5 +1259,536 @@ namespace eCommerceOnWeb.Backend.Domain.UnitTests.Aggregates.ProductAggregate
             product.DomainEvents.Should()
                 .HaveCount(eventsCount);
         }
+
+        [Fact]
+        public void Activate_ShouldChangeStatus_FromDraftToActive()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Status.Should().Be(ProductStatus.Draft);
+
+            // Act
+            product.Activate();
+
+            // Assert
+            product.Status.Should().Be(ProductStatus.Active);
+
+            product.DomainEvents.Should().ContainSingle(e =>
+                e is ProductActivatedEvent);
+        }
+
+        [Fact]
+        public void Activate_ShouldDoNothing_WhenAlreadyActive()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Activate();
+
+            product.Status.Should()
+                .Be(ProductStatus.Active);
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            product.Activate();
+
+            // Assert
+            product.Status.Should()
+                .Be(ProductStatus.Active);
+
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount);
+        }
+
+        [Fact]
+        public void Activate_ShouldChangeStatus_FromInactiveToActive()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Activate();
+            product.Deactivate();
+
+            product.Status.Should().Be(ProductStatus.Inactive);
+
+            int eventsBefore =
+                product.DomainEvents.Count;
+
+            // Act
+            product.Activate();
+
+            // Assert
+            product.Status.Should().Be(ProductStatus.Active);
+
+            product.DomainEvents.Should().HaveCount(eventsBefore + 1);
+
+            product.DomainEvents.Last().Should()
+                .BeOfType<ProductActivatedEvent>();
+        }
+
+        [Fact]
+        public void Deactivate_ShouldChangeStatus_FromActiveToInactive()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Activate();
+
+            product.Status.Should()
+                .Be(ProductStatus.Active);
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            product.Deactivate();
+
+            // Assert
+            product.Status.Should()
+                .Be(ProductStatus.Inactive);
+
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount + 1);
+
+            product.DomainEvents.Last()
+                .Should()
+                .BeOfType<ProductDeactivatedEvent>();
+        }
+
+        [Fact]
+        public void Deactivate_ShouldDoNothing_WhenAlreadyInactive()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Activate();
+            product.Deactivate();
+
+            product.Status.Should()
+                .Be(ProductStatus.Inactive);
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            product.Deactivate();
+
+            // Assert
+            product.Status.Should()
+                .Be(ProductStatus.Inactive);
+
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount);
+        }
+
+        [Fact]
+        public void Deactivate_ShouldThrow_WhenProductIsDraft()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Status.Should()
+                .Be(ProductStatus.Draft);
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            Action act = () =>
+                product.Deactivate();
+
+            // Assert
+            act.Should()
+                .Throw<DomainException>()
+                .WithMessage(
+                    "Нельзя деактивировать товар, который никогда не был опубликован.");
+
+            product.Status.Should()
+                .Be(ProductStatus.Draft);
+
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount);
+        }
+
+        [Fact]
+        public void Discontinue_ShouldChangeStatus_FromDraftToDiscontinued()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Status.Should()
+                .Be(ProductStatus.Draft);
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            product.Discontinue(
+                "Снят с производства");
+
+            // Assert
+            product.Status.Should()
+                .Be(ProductStatus.Discontinued);
+
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount + 1);
+
+            product.DomainEvents.Last()
+                .Should()
+                .BeOfType<ProductDiscontinuedEvent>();
+        }
+
+        [Fact]
+        public void Discontinue_ShouldChangeStatus_FromActiveToDiscontinued()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Activate();
+
+            product.Status.Should()
+                .Be(ProductStatus.Active);
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            product.Discontinue(
+                "Производитель прекратил выпуск");
+
+            // Assert
+            product.Status.Should()
+                .Be(ProductStatus.Discontinued);
+
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount + 1);
+
+            product.DomainEvents.Last()
+                .Should()
+                .BeOfType<ProductDiscontinuedEvent>();
+        }
+
+        [Fact]
+        public void Discontinue_ShouldChangeStatus_FromInactiveToDiscontinued()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Activate();
+            product.Deactivate();
+
+            product.Status.Should()
+                .Be(ProductStatus.Inactive);
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            product.Discontinue(
+                "Модель больше не выпускается");
+
+            // Assert
+            product.Status.Should()
+                .Be(ProductStatus.Discontinued);
+
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount + 1);
+
+            product.DomainEvents.Last()
+                .Should()
+                .BeOfType<ProductDiscontinuedEvent>();
+        }
+
+        [Fact]
+        public void Discontinue_ShouldDoNothing_WhenAlreadyDiscontinued()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Discontinue(
+                "Снят с производства");
+
+            product.Status.Should()
+                .Be(ProductStatus.Discontinued);
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            product.Discontinue(
+                "Повторное снятие");
+
+            // Assert
+            product.Status.Should()
+                .Be(ProductStatus.Discontinued);
+
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount);
+        }
+
+        [Fact]
+        public void Activate_ShouldThrow_WhenProductIsDiscontinued()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Discontinue(
+                "Производство прекращено");
+
+            product.Status.Should()
+                .Be(ProductStatus.Discontinued);
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            Action act = () =>
+                product.Activate();
+
+            // Assert
+            act.Should()
+                .Throw<DomainException>();
+
+            product.Status.Should()
+                .Be(ProductStatus.Discontinued);
+
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount);
+        }
+
+        [Fact]
+        public void Deactivate_ShouldThrow_WhenProductIsDiscontinued()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Discontinue(
+                "Производство прекращено");
+
+            product.Status.Should()
+                .Be(ProductStatus.Discontinued);
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            Action act = () =>
+                product.Deactivate();
+
+            // Assert
+            act.Should()
+                .Throw<DomainException>();
+
+            product.Status.Should()
+                .Be(ProductStatus.Discontinued);
+
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount);
+        }
+
+        [Fact]
+        public void Activate_ShouldRaiseProductActivatedEvent()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            // Act
+            product.Activate();
+
+            // Assert
+            product.DomainEvents.Should()
+                .ContainSingle(e => e is ProductActivatedEvent);
+
+            ProductActivatedEvent domainEvent =
+                product.DomainEvents
+                    .OfType<ProductActivatedEvent>()
+                    .Single();
+
+            domainEvent.ProductId
+                .Should()
+                .Be(product.Id);
+        }
+
+        [Fact]
+        public void Deactivate_ShouldRaiseProductDeactivatedEvent()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Activate();
+
+            // Act
+            product.Deactivate();
+
+            // Assert
+            product.DomainEvents.Should()
+                .ContainSingle(e => e is ProductDeactivatedEvent);
+
+            ProductDeactivatedEvent domainEvent =
+                product.DomainEvents
+                    .OfType<ProductDeactivatedEvent>()
+                    .Single();
+
+            domainEvent.ProductId
+                .Should()
+                .Be(product.Id);
+        }
+
+        [Fact]
+        public void Discontinue_ShouldRaiseProductDiscontinuedEvent()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Activate();
+
+            string reason =
+                "Производство прекращено";
+
+            // Act
+            product.Discontinue(reason);
+
+            // Assert
+            product.DomainEvents.Should()
+                .ContainSingle(e => e is ProductDiscontinuedEvent);
+
+            ProductDiscontinuedEvent domainEvent =
+                product.DomainEvents
+                    .OfType<ProductDiscontinuedEvent>()
+                    .Single();
+
+            domainEvent.ProductId
+                .Should()
+                .Be(product.Id);
+
+            domainEvent.Reason
+                .Should()
+                .Be(reason);
+        }
+
+        [Fact]
+        public void Activate_ShouldNotRaiseEvent_WhenAlreadyActive()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Activate();
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            product.Activate();
+
+            // Assert
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount);
+        }
+
+        [Fact]
+        public void Deactivate_ShouldNotRaiseEvent_WhenAlreadyInactive()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Activate();
+            product.Deactivate();
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            product.Deactivate();
+
+            // Assert
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount);
+        }
+
+        [Fact]
+        public void Discontinue_ShouldNotRaiseEvent_WhenAlreadyDiscontinued()
+        {
+            // Arrange
+            Product product =
+                ProductTestData.CreateValidProduct();
+
+            product.Discontinue();
+
+            int eventsCount =
+                product.DomainEvents.Count;
+
+            // Act
+            product.Discontinue();
+
+            // Assert
+            product.DomainEvents.Should()
+                .HaveCount(eventsCount);
+        }
+
+        [Theory]
+        [InlineData(ProductStatus.Discontinued, true)]
+        [InlineData(ProductStatus.Active, false)]
+        [InlineData(ProductStatus.Inactive, false)]
+        [InlineData(ProductStatus.Draft, false)]
+        public void IsTerminal_ShouldReturnExpectedResult(
+    ProductStatus status,
+    bool expected)
+        {
+            status.IsTerminal()
+                .Should()
+                .Be(expected);
+        }
+
+        [Theory]
+        [InlineData(ProductStatus.Draft, false)]
+        [InlineData(ProductStatus.Active, true)]
+        [InlineData(ProductStatus.Inactive, false)]
+        [InlineData(ProductStatus.Discontinued, false)]
+        public void IsSellable_ShouldReturnExpectedResult(
+    ProductStatus status,
+    bool expected)
+        {
+            bool result =
+                status.IsSellable();
+
+            result.Should()
+                .Be(expected);
+        }
+
+        [Theory]
+        [InlineData(ProductStatus.Draft, true)]
+        [InlineData(ProductStatus.Active, true)]
+        [InlineData(ProductStatus.Inactive, true)]
+        [InlineData(ProductStatus.Discontinued, false)]
+        public void IsEditable_ShouldReturnExpectedResult(
+    ProductStatus status,
+    bool expected)
+        {
+            bool result =
+                status.IsEditable();
+
+            result.Should()
+                .Be(expected);
+        }
     }
 }

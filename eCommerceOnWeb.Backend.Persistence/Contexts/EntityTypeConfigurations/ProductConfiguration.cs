@@ -58,11 +58,6 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
                .HasColumnName("stock_quantity")
                .IsRequired();
 
-        builder.Property(p => p.Status)
-                .HasConversion<string>()
-                .HasMaxLength(20)
-                .IsRequired();
-
         // --- Индексы ---
         builder.HasIndex(p => p.Sku)
         .IsUnique()
@@ -84,6 +79,11 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.BrandId)
                .HasColumnName("brand_id")
                .IsRequired();
+
+        builder.Property(p => p.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .IsRequired();
 
         // --- Soft Delete ---
         builder.Property(p => p.IsDeleted)

@@ -155,10 +155,6 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
                         .HasColumnType("character varying(13)")
                         .HasColumnName("gtin");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
@@ -180,6 +176,11 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("sku");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<int>("StockQuantity")
                         .HasColumnType("integer")

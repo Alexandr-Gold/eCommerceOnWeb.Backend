@@ -101,7 +101,7 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
             WarrantyMonths = warrantyMonths;
             ShippingDimensions = shippingDimensions ?? throw new ArgumentNullException(nameof(shippingDimensions));
             StockQuantity = initialStock;
-            Status = ProductStatus.Draft;
+            Status = ProductStatus.Draft;     // Начальное состояние
         }
 
         // --- МЕТОДЫ УПРАВЛЕНИЯ ИЗОБРАЖЕНИЯМИ (Инварианты галереи) ---
@@ -343,6 +343,60 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate
 
             AddDomainEvent(
                 new ProductDeletedEvent(Id));
+        }
+
+        // Команда Activate (Draft -> Active, Inactive -> Active, Active -> no-op, Discontinued -> Exception)
+        public void Activate()
+        {
+            if (Status == ProductStatus.Active)
+                return;
+
+            if (Status.IsTerminal())
+            {
+                throw new DomainException(
+                    "Снятый с производства товар нельзя снова активировать.");
+            }
+
+            Status = ProductStatus.Active;
+
+            AddDomainEvent(
+                new ProductActivatedEvent(Id));
+        }
+
+        public void Deactivate()
+        {
+            if (Status == ProductStatus.Inactive)
+                return;
+
+            if (Status == ProductStatus.Draft)
+            {
+                throw new DomainException(
+                    "Нельзя деактивировать товар, который никогда не был опубликован.");
+            }
+
+            if (Status.IsTerminal())
+            {
+                throw new DomainException(
+                    "Нельзя деактивировать снятый с производства товар.");
+            }
+
+            Status = ProductStatus.Inactive;
+
+            AddDomainEvent(
+                new ProductDeactivatedEvent(Id));
+        }
+
+        public void Discontinue(string? reason = null)
+        {
+            if (Status == ProductStatus.Discontinued)
+                return;
+
+            Status = ProductStatus.Discontinued;
+
+            AddDomainEvent(
+                new ProductDiscontinuedEvent(
+                    Id,
+                    reason));
         }
 
         // Для AddImage, RemoveImage
