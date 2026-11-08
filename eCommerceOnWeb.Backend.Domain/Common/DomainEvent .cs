@@ -1,27 +1,26 @@
 ﻿using MediatR;
 using System.Text.Json.Serialization;
 
-namespace eCommerceOnWeb.Backend.Domain.Common
+namespace eCommerceOnWeb.Backend.Domain.Common;
+
+
+public abstract record DomainEvent : INotification
 {
+    public Guid EventId { get; }                // только get – защита от with
+    public DateTime OccurredOnUtc { get; }
 
-    public abstract record DomainEvent : INotification
+    // Конструктор для обычного создания (используется производными записями)
+    protected DomainEvent()
     {
-        public Guid EventId { get; }                // только get – защита от with
-        public DateTime OccurredOnUtc { get; }
+        EventId = Guid.NewGuid();
+        OccurredOnUtc = DateTime.UtcNow;
+    }
 
-        // Конструктор для обычного создания (используется производными записями)
-        protected DomainEvent()
-        {
-            EventId = Guid.NewGuid();
-            OccurredOnUtc = DateTime.UtcNow;
-        }
-
-        // Конструктор для десериализации (System.Text.Json)
-        [JsonConstructor]
-        protected DomainEvent(Guid eventId, DateTime occurredOnUtc)
-        {
-            EventId = eventId;
-            OccurredOnUtc = occurredOnUtc;
-        }
+    // Конструктор для десериализации (System.Text.Json)
+    [JsonConstructor]
+    protected DomainEvent(Guid eventId, DateTime occurredOnUtc)
+    {
+        EventId = eventId;
+        OccurredOnUtc = occurredOnUtc;
     }
 }

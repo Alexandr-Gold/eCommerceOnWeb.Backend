@@ -1,9 +1,8 @@
-﻿namespace eCommerceOnWeb.Backend.Domain.Common
+﻿namespace eCommerceOnWeb.Backend.Domain.Common;
+
+public interface ISoftDeletable
 {
-    public interface ISoftDeletable
-    {
-        bool IsDeleted { get; }
-        DateTime? DeletedAtUtc { get; }
-        void Delete(); // Метод для вызова внутри домена
-    }
+    bool IsDeleted { get; }
+    DateTime? DeletedAtUtc { get; }
+    void Delete(); // Метод для вызова внутри домена
 }

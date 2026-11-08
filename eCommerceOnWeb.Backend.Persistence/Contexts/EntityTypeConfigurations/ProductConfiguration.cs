@@ -81,6 +81,7 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
                .IsRequired();
 
         builder.Property(p => p.Status)
+                .HasColumnName("status")
                 .HasConversion<string>()
                 .HasMaxLength(20)
                 .IsRequired();

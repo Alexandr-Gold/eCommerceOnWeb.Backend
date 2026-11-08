@@ -1,40 +1,39 @@
 ﻿using eCommerceOnWeb.Backend.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Http;
 
-namespace eCommerceOnWeb.Backend.Persistence.Services
+namespace eCommerceOnWeb.Backend.Persistence.Services;
+
+public sealed class StorageService : IStorageService
 {
-    public sealed class StorageService : IStorageService
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public StorageService(
+        IHttpContextAccessor httpContextAccessor)
     {
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        _httpContextAccessor = httpContextAccessor;
+    }
 
-        public StorageService(
-            IHttpContextAccessor httpContextAccessor)
-        {
-            _httpContextAccessor = httpContextAccessor;
-        }
+    public string GetAbsoluteUrl(string storageKey)
+    {
+        if (string.IsNullOrWhiteSpace(storageKey))
+            return string.Empty;
 
-        public string GetAbsoluteUrl(string storageKey)
-        {
-            if (string.IsNullOrWhiteSpace(storageKey))
-                return string.Empty;
+        HttpRequest? request = _httpContextAccessor.HttpContext?.Request;
 
-            HttpRequest? request = _httpContextAccessor.HttpContext?.Request;
+        if (request == null)
+            return storageKey;
 
-            if (request == null)
-                return storageKey;
+        return $"{request.Scheme}://{request.Host}/{storageKey}";
+    }
 
-            return $"{request.Scheme}://{request.Host}/{storageKey}";
-        }
+    public string GenerateStorageKey(
+        string fileName,
+        string folder = "products")
+    {
+        string extension = Path.GetExtension(fileName);
 
-        public string GenerateStorageKey(
-            string fileName,
-            string folder = "products")
-        {
-            string extension = Path.GetExtension(fileName);
-
-            return $"{folder}/{Guid.NewGuid()}{extension}"
-                .ToLowerInvariant();
-        }
+        return $"{folder}/{Guid.NewGuid()}{extension}"
+            .ToLowerInvariant();
     }
 }
 

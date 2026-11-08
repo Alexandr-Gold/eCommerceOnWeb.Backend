@@ -1,51 +1,68 @@
 ﻿using eCommerceOnWeb.Backend.Domain.Exceptions;
+using System.Text.Json.Serialization;
 
-namespace eCommerceOnWeb.Backend.Domain.Common
+namespace eCommerceOnWeb.Backend.Domain.Common;
+
+public sealed record Money
 {
-    public record Money(decimal Amount, string Currency)
-    {
-        private const string DefaultCurrency = "USD";
+    private const string DefaultCurrency = "USD";
 
-        private static readonly HashSet<string> SupportedCurrencies =
-        [
-            "USD",
-            "EUR",
-            "RUB"
-        ];
-
-        public static Money Zero() =>
-            new(0, DefaultCurrency);
-
-        // Инвариант: цена не может быть отрицательной,
-        // валюта должна быть поддерживаемой.
-        public static Money Create(
-    decimal amount,
-    string currency)
+    private static readonly HashSet<string> SupportedCurrencies =
+        new(StringComparer.Ordinal)
         {
-            if (amount < 0)
-                throw new DomainException(
-                    "Сумма не может быть отрицательной.");
+        "USD",
+        "EUR",
+        "RUB"
+        };
 
-            int scale = (decimal.GetBits(amount)[3] >> 16) & 0xFF;
+    public decimal Amount { get; }
+    public string Currency { get; }
 
-            if (scale > 2)
-                throw new DomainException(
-                    "Сумма может содержать не более двух знаков после запятой.");
+    /// <summary>
+    /// Единственный способ создать Money — конструктор валидирует инварианты:
+    /// сумма неотрицательна, scale ≤ 2, валюта из поддерживаемого списка.
+    /// Обход через <c>new Money(-5, "USD")</c> невозможен: валидация в теле ctor.
+    /// </summary>
+    /// <exception cref="DomainException">Нарушен любой из инвариантов.</exception>
+    [JsonConstructor]
+    public Money(decimal amount, string? currency)
+    {
+        if (amount < 0)
+            throw new DomainException(
+                "Сумма не может быть отрицательной.");
 
-            if (string.IsNullOrWhiteSpace(currency))
-                throw new DomainException(
-                    "Код валюты не может быть пустым.");
+        // decimal.GetBits(...)[3] >> 16 & 0xFF — scale (число знаков после запятой).
+        // Strict: 100.000m отвергается, хотя value == 100.00m.
+        // Если продукт решит «нормализовать, а не бросать» — заменить на
+        //   amount = decimal.Round(amount, 2);
+        //   if (decimal.Round(amount, 2) != amount) throw ...;
 
-            string normalizedCurrency =
-                currency.ToUpperInvariant();
+        int scale = (decimal.GetBits(amount)[3] >> 16) & 0xFF;
+        if (scale > 2)
+            throw new DomainException(
+                "Сумма может содержать не более двух знаков после запятой.");
 
-            if (!SupportedCurrencies.Contains(normalizedCurrency))
-                throw new DomainException(
-                    $"Валюта '{currency}' не поддерживается.");
+        if (string.IsNullOrWhiteSpace(currency))
+            throw new DomainException(
+                "Код валюты не может быть пустым.");
 
-            return new Money(
-                amount,
-                normalizedCurrency);
-        }
+        string normalizedCurrency = currency.ToUpperInvariant();
+        if (!SupportedCurrencies.Contains(normalizedCurrency))
+            throw new DomainException(
+                $"Валюта '{currency}' не поддерживается.");
+
+        Amount = amount;
+        Currency = normalizedCurrency;
     }
+
+    public static Money Zero() => new(0, DefaultCurrency);
+
+    /// <summary>Семантический алиас для <c>new Money(...)</c>. Валидация — в ctor.</summary>
+    public static Money Create(
+        decimal amount,
+        string currency) => new(amount, currency);
+
+    public bool IsZero => Amount == 0m;
+    public bool IsPositive => Amount > 0m;
 }
+

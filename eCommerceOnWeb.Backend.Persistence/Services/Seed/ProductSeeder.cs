@@ -6,63 +6,62 @@ using eCommerceOnWeb.Backend.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace eCommerceOnWeb.Backend.Persistence.Seed
+namespace eCommerceOnWeb.Backend.Persistence.Seed;
+
+public static class ProductSeeder
 {
-    public static class ProductSeeder
+    public static async Task SeedAsync(
+        ECommerceDbContext context,
+        ILogger logger,
+        Category category,
+        Brand brand,
+        CancellationToken cancellationToken = default)
     {
-        public static async Task SeedAsync(
-            ECommerceDbContext context,
-            ILogger logger,
-            Category category,
-            Brand brand,
-            CancellationToken cancellationToken = default)
+        const string sku = "APL-IP16PRO-256";
+
+
+        if (await context.Products.AnyAsync(
+                p => p.Sku == sku,
+                cancellationToken))
         {
-            const string sku = "APL-IP16PRO-256";
-
-
-            if (await context.Products.AnyAsync(
-                    p => p.Sku == sku,
-                    cancellationToken))
-            {
-                logger.LogInformation(
-                    "Product with SKU {Sku} already exists. Skipped.",
-                    sku);
-
-                return;
-            }
-
-            Product iphone = Product.Create(
-             name: "Apple iPhone 16 Pro 256GB",
-             sku: sku,
-             gtin: "1234567890123",
-             modelNumber: "A3293",
-             price: Money.Create(1499m, "USD"),
-             categoryId: category.Id,
-             brandId: brand.Id,
-             description: "Флагманский смартфон Apple с OLED-дисплеем.",
-             warrantyMonths: 24,
-             shippingDimensions: Dimensions.Create(
-                 widthCm: 8,
-                 heightCm: 16,
-                 depthCm: 2,
-                 weightKg: 0.35m),
-             initialStock: 15);
-
-            // Характеристики товара
-            iphone.SetAttribute("Display", "6.3-inch Super Retina XDR OLED");
-            iphone.SetAttribute("Processor", "Apple A18 Pro");
-            iphone.SetAttribute("RAM", "8 GB");
-            iphone.SetAttribute("Storage", "256 GB");
-            iphone.SetAttribute("Color", "Desert Titanium");
-            iphone.SetAttribute("OperatingSystem", "iOS 26");
-            iphone.SetAttribute("Connectivity", "5G");
-            iphone.SetAttribute("WaterResistance", "IP68");
-
-            context.Products.Add(iphone);
-
             logger.LogInformation(
-                "Product {Sku} added to seed.",
+                "Product with SKU {Sku} already exists. Skipped.",
                 sku);
+
+            return;
         }
+
+        Product iphone = Product.Create(
+         name: "Apple iPhone 16 Pro 256GB",
+         sku: sku,
+         gtin: "1234567890123",
+         modelNumber: "A3293",
+         price: Money.Create(1499m, "USD"),
+         categoryId: category.Id,
+         brandId: brand.Id,
+         description: "Флагманский смартфон Apple с OLED-дисплеем.",
+         warrantyMonths: 24,
+         shippingDimensions: Dimensions.Create(
+             widthCm: 8,
+             heightCm: 16,
+             depthCm: 2,
+             weightKg: 0.35m),
+         initialStock: 15);
+
+        // Характеристики товара
+        iphone.SetAttribute("Display", "6.3-inch Super Retina XDR OLED");
+        iphone.SetAttribute("Processor", "Apple A18 Pro");
+        iphone.SetAttribute("RAM", "8 GB");
+        iphone.SetAttribute("Storage", "256 GB");
+        iphone.SetAttribute("Color", "Desert Titanium");
+        iphone.SetAttribute("OperatingSystem", "iOS 26");
+        iphone.SetAttribute("Connectivity", "5G");
+        iphone.SetAttribute("WaterResistance", "IP68");
+
+        context.Products.Add(iphone);
+
+        logger.LogInformation(
+            "Product {Sku} added to seed.",
+            sku);
     }
 }

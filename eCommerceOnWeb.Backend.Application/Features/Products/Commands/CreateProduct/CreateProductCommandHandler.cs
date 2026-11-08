@@ -6,91 +6,90 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct
-{
-    public sealed class CreateProductCommandHandler
-        : IRequestHandler<CreateProductCommand, Result<Guid>>
-    {
-        private readonly IECommerceDbContext _context;
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreateProduct;
 
-        public CreateProductCommandHandler(IECommerceDbContext context)
+public sealed class CreateProductCommandHandler
+    : IRequestHandler<CreateProductCommand, Result<Guid>>
+{
+    private readonly IECommerceDbContext _context;
+
+    public CreateProductCommandHandler(IECommerceDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Result<Guid>> Handle(
+        CreateProductCommand request,
+        CancellationToken cancellationToken)
+    {
+        bool skuExists = await _context.Products
+     .AnyAsync(
+         p => p.Sku == request.Sku.ToUpperInvariant(),
+         cancellationToken);
+
+        if (skuExists)
         {
-            _context = context;
+            return Result<Guid>.Failure(
+                ProductErrors.SkuAlreadyExists(request.Sku));
         }
 
-        public async Task<Result<Guid>> Handle(
-            CreateProductCommand request,
-            CancellationToken cancellationToken)
+        if (!string.IsNullOrWhiteSpace(request.Gtin))
         {
-            bool skuExists = await _context.Products
-         .AnyAsync(
-             p => p.Sku == request.Sku.ToUpperInvariant(),
-             cancellationToken);
+            bool gtinExists = await _context.Products
+                .AnyAsync(
+                    p => p.Gtin == request.Gtin,
+                    cancellationToken);
 
-            if (skuExists)
+            if (gtinExists)
             {
                 return Result<Guid>.Failure(
-                    ProductErrors.SkuAlreadyExists(request.Sku));
+                    ProductErrors.GtinAlreadyExists(request.Gtin));
             }
-
-            if (!string.IsNullOrWhiteSpace(request.Gtin))
-            {
-                bool gtinExists = await _context.Products
-                    .AnyAsync(
-                        p => p.Gtin == request.Gtin,
-                        cancellationToken);
-
-                if (gtinExists)
-                {
-                    return Result<Guid>.Failure(
-                        ProductErrors.GtinAlreadyExists(request.Gtin));
-                }
-            }
-
-            Money price = Money.Create(
-                 request.PriceAmount,
-                 request.PriceCurrency);
-
-            Dimensions dimensions = Dimensions.Create(
-                request.DimWidthCm,
-                request.DimHeightCm,
-                request.DimDepthCm,
-                request.DimWeightKg);
-
-            Product product = Product.Create(
-                request.Name,
-                request.Sku,
-                request.Gtin,
-                request.ModelNumber,
-                price,
-                request.CategoryId,
-                request.BrandId,
-                request.Description,
-                request.WarrantyMonths,
-                dimensions,
-                request.InitialStock);
-
-            foreach (ProductAttributeDto attribute in request.Attributes)
-            {
-                object value = attribute.Value.ValueKind switch
-                {
-                    JsonValueKind.String => attribute.Value.GetString()!,
-                    JsonValueKind.Number when attribute.Value.TryGetInt64(out long l) => l,
-                    JsonValueKind.Number => attribute.Value.GetDecimal(),
-                    JsonValueKind.True => true,
-                    JsonValueKind.False => false,
-                    JsonValueKind.Null => throw new DomainException("Атрибут не может иметь значение null."),
-                    _ => throw new DomainException(
-                             "Неподдерживаемый тип значения атрибута.")
-                };
-                product.SetAttribute(attribute.Key, value);
-            }
-
-            _context.Products.Add(product);
-
-            await _context.SaveChangesAsync(cancellationToken);
-
-            return Result<Guid>.Success(product.Id);
         }
+
+        Money price = Money.Create(
+             request.PriceAmount,
+             request.PriceCurrency);
+
+        Dimensions dimensions = Dimensions.Create(
+            request.DimWidthCm,
+            request.DimHeightCm,
+            request.DimDepthCm,
+            request.DimWeightKg);
+
+        Product product = Product.Create(
+            request.Name,
+            request.Sku,
+            request.Gtin,
+            request.ModelNumber,
+            price,
+            request.CategoryId,
+            request.BrandId,
+            request.Description,
+            request.WarrantyMonths,
+            dimensions,
+            request.InitialStock);
+
+        foreach (ProductAttributeDto attribute in request.Attributes)
+        {
+            object value = attribute.Value.ValueKind switch
+            {
+                JsonValueKind.String => attribute.Value.GetString()!,
+                JsonValueKind.Number when attribute.Value.TryGetInt64(out long l) => l,
+                JsonValueKind.Number => attribute.Value.GetDecimal(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Null => throw new DomainException("Атрибут не может иметь значение null."),
+                _ => throw new DomainException(
+                         "Неподдерживаемый тип значения атрибута.")
+            };
+            product.SetAttribute(attribute.Key, value);
+        }
+
+        _context.Products.Add(product);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<Guid>.Success(product.Id);
     }
 }

@@ -2,21 +2,20 @@
 
 #nullable disable
 
-namespace eCommerceOnWeb.Backend.Persistence.Migrations
+namespace eCommerceOnWeb.Backend.Persistence.Migrations;
+
+/// <inheritdoc />
+public partial class RenameProductUniqueIndexes : Migration
 {
     /// <inheritdoc />
-    public partial class RenameProductUniqueIndexes : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
 
-        }
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
 
-        }
     }
 }

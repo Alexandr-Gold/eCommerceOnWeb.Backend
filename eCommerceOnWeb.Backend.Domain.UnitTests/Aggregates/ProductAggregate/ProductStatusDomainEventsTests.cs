@@ -2,215 +2,214 @@
 using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate.Events;
 using FluentAssertions;
 
-namespace eCommerceOnWeb.Backend.Domain.UnitTests.Aggregates.ProductAggregate
+namespace eCommerceOnWeb.Backend.Domain.UnitTests.Aggregates.ProductAggregate;
+
+public class ProductStatusDomainEventsTests
 {
-    public class ProductStatusDomainEventsTests
+    [Fact]
+    public void Activate_ShouldRaiseProductActivatedEvent()
     {
-        [Fact]
-        public void Activate_ShouldRaiseProductActivatedEvent()
-        {
-            // Arrange
-            Product product =
-                ProductTestData.CreateValidProduct();
+        // Arrange
+        Product product =
+            ProductTestData.CreateValidProduct();
 
-            product.ClearDomainEvents();
-            product.Status.Should().Be(ProductStatus.Draft); // precondition
+        product.ClearDomainEvents();
+        product.Status.Should().Be(ProductStatus.Draft); // precondition
 
-            // Act
-            product.Activate();
+        // Act
+        product.Activate();
 
-            // Assert
-            product.DomainEvents.Should()
+        // Assert
+        product.DomainEvents.Should()
+            .ContainSingle()
+            .Which.Should()
+            .BeOfType<ProductActivatedEvent>();
+    }
+
+    [Fact]
+    public void Activate_ShouldNotRaiseEvent_WhenAlreadyActive()
+    {
+        // Arrange
+        Product product =
+            ProductTestData.CreateValidProduct();
+
+        // Act
+        product.Activate();
+        product.ClearDomainEvents();
+
+        // Assert
+        product.DomainEvents.Should()
+            .BeEmpty();
+    }
+
+    [Fact]
+    public void Activate_FromInactive_ShouldRaiseProductActivatedEvent()
+    {
+        // Arrange
+        Product product =
+            ProductTestData.CreateValidProduct();
+
+        product.Activate();
+        product.Deactivate();
+
+        product.Status.Should()
+            .Be(ProductStatus.Inactive);
+
+        product.ClearDomainEvents();
+
+        // Act
+        product.Activate();
+
+        // Assert
+        product.Status.Should()
+            .Be(ProductStatus.Active);
+
+        ProductActivatedEvent domainEvent =
+            product.DomainEvents
+                .Should()
                 .ContainSingle()
-                .Which.Should()
-                .BeOfType<ProductActivatedEvent>();
-        }
+                .Which
+                .Should()
+                .BeOfType<ProductActivatedEvent>()
+                .Subject;
 
-        [Fact]
-        public void Activate_ShouldNotRaiseEvent_WhenAlreadyActive()
-        {
-            // Arrange
-            Product product =
-                ProductTestData.CreateValidProduct();
+        domainEvent.ProductId.Should()
+            .Be(product.Id);
+    }
 
-            // Act
-            product.Activate();
-            product.ClearDomainEvents();
+    [Fact]
+    public void Deactivate_ShouldRaiseProductDeactivatedEvent()
+    {
+        // Arrange
+        Product product =
+            ProductTestData.CreateValidProduct();
 
-            // Assert
-            product.DomainEvents.Should()
-                .BeEmpty();
-        }
+        product.Activate();             // готовим Active
+        product.ClearDomainEvents();    // ← очищаем ПОСЛЕ подготовки
 
-        [Fact]
-        public void Activate_FromInactive_ShouldRaiseProductActivatedEvent()
-        {
-            // Arrange
-            Product product =
-                ProductTestData.CreateValidProduct();
+        // Act
+        product.Deactivate();
 
-            product.Activate();
-            product.Deactivate();
+        // Assert
+        product.DomainEvents.Should()
+            .ContainSingle()
+            .Which.Should()
+            .BeOfType<ProductDeactivatedEvent>();
+    }
 
-            product.Status.Should()
-                .Be(ProductStatus.Inactive);
+    [Fact]
+    public void Deactivate_ShouldNotRaiseEvent_WhenAlreadyInactive()
+    {
+        // Arrange
+        Product product =
+            ProductTestData.CreateValidProduct();
 
-            product.ClearDomainEvents();
+        product.Activate();
+        product.Deactivate();
+        product.ClearDomainEvents();
 
-            // Act
-            product.Activate();
+        // Act
+        product.Deactivate();
 
-            // Assert
-            product.Status.Should()
-                .Be(ProductStatus.Active);
 
-            ProductActivatedEvent domainEvent =
-                product.DomainEvents
-                    .Should()
-                    .ContainSingle()
-                    .Which
-                    .Should()
-                    .BeOfType<ProductActivatedEvent>()
-                    .Subject;
+        // Assert
+        product.DomainEvents.Should()
+            .BeEmpty();
+    }
 
-            domainEvent.ProductId.Should()
-                .Be(product.Id);
-        }
+    [Fact]
+    public void Discontinue_ShouldRaiseProductDiscontinuedEvent()
+    {
+        // Arrange
+        Product product =
+            ProductTestData.CreateValidProduct();
 
-        [Fact]
-        public void Deactivate_ShouldRaiseProductDeactivatedEvent()
-        {
-            // Arrange
-            Product product =
-                ProductTestData.CreateValidProduct();
+        product.ClearDomainEvents();
 
-            product.Activate();             // готовим Active
-            product.ClearDomainEvents();    // ← очищаем ПОСЛЕ подготовки
+        // Act
+        product.Discontinue();
 
-            // Act
-            product.Deactivate();
-
-            // Assert
-            product.DomainEvents.Should()
+        // Assert
+        ProductDiscontinuedEvent domainEvent =
+            product.DomainEvents
+                .Should()
                 .ContainSingle()
-                .Which.Should()
-                .BeOfType<ProductDeactivatedEvent>();
-        }
+                .Which
+                .Should()
+                .BeOfType<ProductDiscontinuedEvent>()
+                .Subject;
 
-        [Fact]
-        public void Deactivate_ShouldNotRaiseEvent_WhenAlreadyInactive()
-        {
-            // Arrange
-            Product product =
-                ProductTestData.CreateValidProduct();
+        domainEvent.ProductId.Should().Be(product.Id);
+    }
 
-            product.Activate();
-            product.Deactivate();
-            product.ClearDomainEvents();
+    [Fact]
+    public void Discontinue_ShouldNotRaiseEvent_WhenAlreadyDiscontinued()
+    {
+        // Arrange
+        Product product =
+            ProductTestData.CreateValidProduct();
 
-            // Act
-            product.Deactivate();
+        product.Discontinue();
+        product.ClearDomainEvents();
 
+        // Act
+        product.Discontinue();
 
-            // Assert
-            product.DomainEvents.Should()
-                .BeEmpty();
-        }
+        // Assert
+        product.DomainEvents.Should()
+            .BeEmpty();
+    }
 
-        [Fact]
-        public void Discontinue_ShouldRaiseProductDiscontinuedEvent()
-        {
-            // Arrange
-            Product product =
-                ProductTestData.CreateValidProduct();
+    [Fact]
+    public void Discontinue_ShouldPropagateReasonToEvent()
+    {
+        // Arrange
+        Product product =
+            ProductTestData.CreateValidProduct();
 
-            product.ClearDomainEvents();
+        product.ClearDomainEvents();
 
-            // Act
-            product.Discontinue();
+        const string reason = "End of life";
 
-            // Assert
-            ProductDiscontinuedEvent domainEvent =
-                product.DomainEvents
-                    .Should()
-                    .ContainSingle()
-                    .Which
-                    .Should()
-                    .BeOfType<ProductDiscontinuedEvent>()
-                    .Subject;
+        // Act
+        product.Discontinue(reason);
 
-            domainEvent.ProductId.Should().Be(product.Id);
-        }
+        // Assert
+        ProductDiscontinuedEvent domainEvent =
+            product.DomainEvents
+                .OfType<ProductDiscontinuedEvent>()
+                .Single();
 
-        [Fact]
-        public void Discontinue_ShouldNotRaiseEvent_WhenAlreadyDiscontinued()
-        {
-            // Arrange
-            Product product =
-                ProductTestData.CreateValidProduct();
+        domainEvent.ProductId.Should()
+            .Be(product.Id);
 
-            product.Discontinue();
-            product.ClearDomainEvents();
+        domainEvent.Reason.Should()
+            .Be(reason);
+    }
 
-            // Act
-            product.Discontinue();
+    [Fact]
+    public void Discontinue_WithoutReason_ShouldHaveNullReason()
+    {
+        // Arrange
+        Product product =
+            ProductTestData.CreateValidProduct();
 
-            // Assert
-            product.DomainEvents.Should()
-                .BeEmpty();
-        }
+        product.ClearDomainEvents();
 
-        [Fact]
-        public void Discontinue_ShouldPropagateReasonToEvent()
-        {
-            // Arrange
-            Product product =
-                ProductTestData.CreateValidProduct();
+        // Act
+        product.Discontinue();
 
-            product.ClearDomainEvents();
+        // Assert
+        ProductDiscontinuedEvent domainEvent =
+            product.DomainEvents
+                .OfType<ProductDiscontinuedEvent>()
+                .Single();
 
-            const string reason = "End of life";
+        domainEvent.ProductId.Should()
+            .Be(product.Id);
 
-            // Act
-            product.Discontinue(reason);
-
-            // Assert
-            ProductDiscontinuedEvent domainEvent =
-                product.DomainEvents
-                    .OfType<ProductDiscontinuedEvent>()
-                    .Single();
-
-            domainEvent.ProductId.Should()
-                .Be(product.Id);
-
-            domainEvent.Reason.Should()
-                .Be(reason);
-        }
-
-        [Fact]
-        public void Discontinue_WithoutReason_ShouldHaveNullReason()
-        {
-            // Arrange
-            Product product =
-                ProductTestData.CreateValidProduct();
-
-            product.ClearDomainEvents();
-
-            // Act
-            product.Discontinue();
-
-            // Assert
-            ProductDiscontinuedEvent domainEvent =
-                product.DomainEvents
-                    .OfType<ProductDiscontinuedEvent>()
-                    .Single();
-
-            domainEvent.ProductId.Should()
-                .Be(product.Id);
-
-            domainEvent.Reason.Should()
-                .BeNull();
-        }
+        domainEvent.Reason.Should()
+            .BeNull();
     }
 }
 

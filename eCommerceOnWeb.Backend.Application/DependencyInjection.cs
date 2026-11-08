@@ -4,27 +4,26 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace eCommerceOnWeb.Backend.Application
+namespace eCommerceOnWeb.Backend.Application;
+
+public static class DependencyInjection
 {
-    public static class DependencyInjection
+    public static IServiceCollection AddApplication(
+        this IServiceCollection services)
     {
-        public static IServiceCollection AddApplication(
-            this IServiceCollection services)
+        services.AddMediatR(cfg =>
         {
-            services.AddMediatR(cfg =>
-            {
-                cfg.RegisterServicesFromAssembly(
-                    typeof(DependencyInjection).Assembly);
-            });
+            cfg.RegisterServicesFromAssembly(
+                typeof(DependencyInjection).Assembly);
+        });
 
-            services.AddValidatorsFromAssembly(
-                typeof(CreateProductCommandValidator).Assembly);
+        services.AddValidatorsFromAssembly(
+            typeof(CreateProductCommandValidator).Assembly);
 
-            services.AddTransient(
-                typeof(IPipelineBehavior<,>),
-                typeof(ValidationBehavior<,>));
+        services.AddTransient(
+            typeof(IPipelineBehavior<,>),
+            typeof(ValidationBehavior<,>));
 
-            return services;
-        }
+        return services;
     }
 }

@@ -1,52 +1,50 @@
 ﻿using eCommerceOnWeb.Backend.Application.Common.Interfaces;
 using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
-using eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 using eCommerceOnWeb.Backend.Domain.Exceptions;
 using MediatR;
 
-namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProductDetails
+namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.GetProductDetails;
+
+public sealed class AddProductImageCommandHandler
+: IRequestHandler<AddProductImageCommand, Guid>
 {
-    public sealed class AddProductImageCommandHandler
-    : IRequestHandler<AddProductImageCommand, Guid>
+    private readonly IECommerceDbContext _context;
+
+    public AddProductImageCommandHandler(
+        IECommerceDbContext context)
     {
-        private readonly IECommerceDbContext _context;
+        _context = context;
+    }
 
-        public AddProductImageCommandHandler(
-            IECommerceDbContext context)
+    public async Task<Guid> Handle(
+        AddProductImageCommand request,
+        CancellationToken cancellationToken)
+    {
+        Product? product = await _context.Products
+            .FindAsync(
+                new object[] { request.ProductId },
+                cancellationToken);
+
+        if (product is null)
         {
-            _context = context;
+            throw new NotFoundException(
+                nameof(Product),
+                request.ProductId);
         }
 
-        public async Task<Guid> Handle(
-            AddProductImageCommand request,
-            CancellationToken cancellationToken)
-        {
-            Product? product = await _context.Products
-                .FindAsync(
-                    new object[] { request.ProductId },
-                    cancellationToken);
+        product.AddImage(
+            request.StorageKey,
+            request.AltText,
+            request.DisplayOrder,
+            request.IsMain);
 
-            if (product is null)
-            {
-                throw new NotFoundException(
-                    nameof(Product),
-                    request.ProductId);
-            }
+        await _context.SaveChangesAsync(cancellationToken);
 
-            product.AddImage(
-                request.StorageKey,
-                request.AltText,
-                request.DisplayOrder,
-                request.IsMain);
+        ProductImage image = product.Images
+            .First(i =>
+                i.StorageKey == request.StorageKey &&
+                i.DisplayOrder == request.DisplayOrder);
 
-            await _context.SaveChangesAsync(cancellationToken);
-
-            ProductImage image = product.Images
-                .First(i =>
-                    i.StorageKey == request.StorageKey &&
-                    i.DisplayOrder == request.DisplayOrder);
-
-            return image.Id;
-        }
+        return image.Id;
     }
 }

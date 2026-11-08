@@ -1,8 +1,7 @@
 ﻿using Ardalis.Specification;
 
-namespace eCommerceOnWeb.Backend.Domain.Common.Interfaces
+namespace eCommerceOnWeb.Backend.Domain.Common.Interfaces;
+
+public interface IRepository<T> : IRepositoryBase<T> where T : class, IAggregateRoot
 {
-    public interface IRepository<T> : IRepositoryBase<T> where T : class, IAggregateRoot
-    {
-    }
 }
