@@ -1408,53 +1408,6 @@ int months)
         product.DomainEvents.Should().BeEmpty();   // ещё не 0 — событие не поднимается
     }
 
-
-    [Fact]
-    public void Debug_StatusMismatch()
-    {
-        Product product = ProductTestData.CreateValidProduct(
-            status: ProductStatus.Active,
-            initialStock: 10);
-
-        ProductStatus status = product.Status;
-        ProductStatus active = ProductStatus.Active;
-
-        Console.WriteLine($"Status: value={status} int={(int)status} type={status.GetType().FullName} asm={status.GetType().Assembly.FullName}");
-        Console.WriteLine($"Active: value={active} int={(int)active} type={active.GetType().FullName} asm={active.GetType().Assembly.FullName}");
-        Console.WriteLine($"== : {status == active}");
-        Console.WriteLine($"is : {status is ProductStatus.Active}");
-        Console.WriteLine($"is not : {status is not ProductStatus.Active}");
-        Console.WriteLine($"Equals: {status.Equals(active)}");
-        Console.WriteLine($"Product type: {product.GetType().FullName}");
-        Console.WriteLine($"Product asm: {product.GetType().Assembly.FullName}");
-    }
-
-    [Fact]
-    public void Debug_DeductStock_BeforeAndAfter()
-    {
-        Product product = ProductTestData.CreateValidProduct(
-            status: ProductStatus.Active,
-            initialStock: 10);
-
-        Console.WriteLine($"BEFORE: Status={product.Status} (int={(int)product.Status}), " +
-                         $"IsDeleted={product.IsDeleted}, Stock={product.StockQuantity}, " +
-                         $"StatusType={product.Status.GetType().AssemblyQualifiedName}");
-        Console.WriteLine($"Is not Active: {product.Status is not ProductStatus.Active}");
-
-        try
-        {
-            product.DeductStock(3);
-            Console.WriteLine($"AFTER: Status={product.Status}, Stock={product.StockQuantity}");
-        }
-        catch (DomainException ex)
-        {
-            Console.WriteLine($"EXCEPTION: {ex.Message}");
-            Console.WriteLine($"AFTER-EX: Status={product.Status} (int={(int)product.Status}), " +
-                             $"IsDeleted={product.IsDeleted}, Stock={product.StockQuantity}");
-            throw;
-        }
-    }
-
     [Fact]
     public void DeductStock_ShouldRaiseOutOfStock_WhenStockReachesZero()
     {

@@ -24,18 +24,20 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
     public Dimensions ShippingDimensions { get; private set; } = null!;
     public int StockQuantity { get; private set; }
 
-    // Бизнес-состояние товара.
-    // На текущем этапе enum.
+    // Status описывает бизнес-состояние публикации товара enum.
     // При усложнении жизненного цикла возможен переход на Smart Enum.
+    // Статуса Editing нет: редактирование выполняется
+    // в текущем состоянии товара.
+    // Draft, Active и Inactive могут изменяться согласно
+    // правилам агрегата.
+    // Discontinued и Deleted запрещают изменения.
     public ProductStatus Status { get; private set; }
 
-    // --- Связи по ID ---
     public Guid CategoryId { get; private set; }
     public Guid BrandId { get; private set; }
 
     public string Description { get; private set; } = string.Empty;
 
-    // --- Инкапсулированные коллекции (DDD-стиль) ---
     private readonly List<ProductImage> _images = new();
     public IReadOnlyCollection<ProductImage> Images =>
         _images.AsReadOnly();
@@ -94,8 +96,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
         int displayOrder,
         bool setAsMain = false)
     {
-        ThrowIfDeleted();
-        ThrowIfDiscontinued();
+        ThrowIfNotEditable();
 
         if (string.IsNullOrWhiteSpace(storageKey))
             throw new DomainException(
@@ -130,8 +131,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
 
     public void SetMainImage(Guid imageId)
     {
-        ThrowIfDeleted();
-        ThrowIfDiscontinued();
+        ThrowIfNotEditable();
 
         ProductImage? targetImage = _images.FirstOrDefault(
             i => i.Id == imageId);
@@ -149,8 +149,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
 
     public void RemoveImage(Guid imageId)
     {
-        ThrowIfDeleted();
-        ThrowIfDiscontinued();
+        ThrowIfNotEditable();
 
         ProductImage? image = _images.FirstOrDefault(i => i.Id == imageId);
         if (image is null) return;
@@ -174,8 +173,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
     /// </summary>
     public void UpdateDescription(string? description)
     {
-        ThrowIfDeleted();
-        ThrowIfDiscontinued();
+        ThrowIfNotEditable();
 
         string normalized = description?.Trim() ?? string.Empty;
 
@@ -193,8 +191,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
     public void SetAttribute<T>(string key, T value)
      where T : notnull
     {
-        ThrowIfDeleted();
-        ThrowIfDiscontinued();
+        ThrowIfNotEditable();
 
         // Проверяем, существует ли атрибут
         // и можно ли получить его в нужном типе.
@@ -237,8 +234,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
     // Удалить атрибут
     public void RemoveAttribute(string key)
     {
-        ThrowIfDeleted();
-        ThrowIfDiscontinued();
+        ThrowIfNotEditable();
 
         //object? oldValue = GetAttribute<object>(key);
 
@@ -263,8 +259,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
 
     public void UpdateShippingDimensions(Dimensions newDimensions)
     {
-        ThrowIfDeleted();
-        ThrowIfDiscontinued();
+        ThrowIfNotEditable();
 
         ArgumentNullException.ThrowIfNull(newDimensions);
 
@@ -276,8 +271,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
 
     public void UpdateWarranty(int months)
     {
-        ThrowIfDeleted();
-        ThrowIfDiscontinued();
+        ThrowIfNotEditable();
 
         if (months < 0)
             throw new DomainException("Срок гарантии указан неверно.");
@@ -290,8 +284,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
 
     public void ChangePrice(Money newPrice)
     {
-        ThrowIfDeleted();
-        ThrowIfDiscontinued();
+        ThrowIfNotEditable();
 
         ArgumentNullException.ThrowIfNull(newPrice);
 
@@ -335,8 +328,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
 
     public void Restock(int quantity)
     {
-        ThrowIfDeleted();
-        ThrowIfDiscontinued();
+        ThrowIfNotEditable();
 
         if (quantity <= 0)
             throw new DomainException(
@@ -497,6 +489,32 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
     {
         _images.Sort(
             (x, y) => x.DisplayOrder.CompareTo(y.DisplayOrder));
+    }
+
+    /// <summary>
+    /// Проверяет операции, которые разрешены только
+    /// для неопубликованных товаров.
+    /// Active-товары уже опубликованы и не должны
+    /// менять критические данные карточки.
+    /// </summary>
+    private void ThrowIfPublished()
+    {
+        ThrowIfNotEditable();
+
+        if (Status == ProductStatus.Active)
+            throw new DomainException(
+                "Опубликованный товар нельзя изменять в этой операции.");
+    }
+
+    /// <summary>
+    /// Проверяет, что товар допускает изменения.
+    /// Удалённые и терминальные товары не могут быть изменены.
+    /// Draft, Active и Inactive проходят эту проверку.
+    /// </summary>
+    private void ThrowIfNotEditable()
+    {
+        ThrowIfDeleted();
+        ThrowIfDiscontinued();
     }
 
     private void ThrowIfDeleted()
