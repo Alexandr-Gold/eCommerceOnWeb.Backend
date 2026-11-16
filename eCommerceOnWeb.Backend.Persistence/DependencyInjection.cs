@@ -1,5 +1,6 @@
 ﻿using eCommerceOnWeb.Backend.Application.Common.Interfaces;
 using eCommerceOnWeb.Backend.Domain.Common.Interfaces;
+using eCommerceOnWeb.Backend.Persistence.Common;
 using eCommerceOnWeb.Backend.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +24,9 @@ public static class DependencyInjection
             provider => provider.GetRequiredService<ECommerceDbContext>());
 
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
+
+        services.AddScoped<IDbConstraintViolationDetector,
+            PostgresConstraintViolationDetector>();
 
         return services;
     }

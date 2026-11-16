@@ -62,6 +62,7 @@ public sealed class GetProductDetailsQueryHandler : IRequestHandler<GetProductDe
             product.Description,
             product.CategoryId,
             product.BrandId,
+            product.Status,
             imagesDto,
             attributes
         );

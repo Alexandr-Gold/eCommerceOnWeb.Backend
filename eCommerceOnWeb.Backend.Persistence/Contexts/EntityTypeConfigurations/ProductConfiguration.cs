@@ -20,35 +20,38 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
                .ValueGeneratedNever();
         builder.Ignore(p => p.DomainEvents);
 
+        // --- Foreign Keys ---
         builder.HasOne<Category>()
-       .WithMany()
-       .HasForeignKey(p => p.CategoryId)
-       .OnDelete(DeleteBehavior.Restrict);
+            .WithMany()
+            .HasForeignKey(p => p.CategoryId)
+            .HasConstraintName("FK_products_categories_category_id")
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne<Brand>()
-               .WithMany()
-               .HasForeignKey(p => p.BrandId)
-               .OnDelete(DeleteBehavior.Restrict);
+            .WithMany()
+            .HasForeignKey(p => p.BrandId)
+            .HasConstraintName("FK_products_brands_brand_id")
+            .OnDelete(DeleteBehavior.Restrict);
 
         // --- Базовые свойства ---
         builder.Property(p => p.Name)
                .HasColumnName("name")
-               .HasMaxLength(250)
+               .HasMaxLength(ProductConstraints.NameMaxLength)
                .IsRequired();
 
         builder.Property(p => p.Sku)
                .HasColumnName("sku")
-               .HasMaxLength(100)
+               .HasMaxLength(ProductConstraints.SkuMaxLength)
                .IsRequired();
 
         builder.Property(p => p.ModelNumber)
                .HasColumnName("model_number")
-               .HasMaxLength(100)
+               .HasMaxLength(ProductConstraints.ModelNumberMaxLength)
                .IsRequired();
 
         builder.Property(p => p.Gtin)
                .HasColumnName("gtin")
-               .HasMaxLength(13);
+               .HasMaxLength(ProductConstraints.GtinMaxLength);
 
         builder.Property(p => p.WarrantyMonths)
                .HasColumnName("warranty_months")
@@ -60,11 +63,12 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         // --- Индексы ---
         builder.HasIndex(p => p.Sku)
-        .IsUnique()
-        .HasDatabaseName("IX_products_sku");
+                .IsUnique()
+                .HasDatabaseName("IX_products_sku");
 
         builder.HasIndex(p => p.Gtin)
                .IsUnique()
+               .HasFilter("gtin IS NOT NULL")
                .HasDatabaseName("IX_products_gtin");
 
         builder.HasIndex(p => p.CategoryId);

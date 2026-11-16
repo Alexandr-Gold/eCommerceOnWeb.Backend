@@ -35,14 +35,37 @@ public class ECommerceDbContext : DbContext, IECommerceDbContext
             Assembly.GetExecutingAssembly());
     }
 
+    public override int SaveChanges()
+    {
+        throw new NotSupportedException(
+            "Use SaveChangesAsync() instead.");
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        throw new NotSupportedException(
+            "Use SaveChangesAsync() instead.");
+    }
+
+    public override Task<int> SaveChangesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return SaveChangesAsync(
+            acceptAllChangesOnSuccess: true,
+            cancellationToken: cancellationToken);
+    }
+
     public override async Task<int> SaveChangesAsync(
-     CancellationToken cancellationToken = default)
+        bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default)
     {
         ApplySoftDelete();
 
         IReadOnlyCollection<DomainEvent> domainEvents = GetDomainEvents();
 
-        int result = await base.SaveChangesAsync(cancellationToken);
+        int result = await base.SaveChangesAsync(
+            acceptAllChangesOnSuccess,
+            cancellationToken);
 
         try
         {
@@ -56,18 +79,12 @@ public class ECommerceDbContext : DbContext, IECommerceDbContext
         return result;
     }
 
-    public override int SaveChanges()
-    {
-        throw new NotSupportedException(
-            "Use SaveChangesAsync() instead.");
-    }
-
     private void ApplySoftDelete()
     {
-        IEnumerable<EntityEntry<ISoftDeletable>> entries =
-            ChangeTracker
-                .Entries<ISoftDeletable>()
-                .Where(e => e.State == EntityState.Deleted);
+        List<EntityEntry<ISoftDeletable>> entries = ChangeTracker
+            .Entries<ISoftDeletable>()
+            .Where(e => e.State == EntityState.Deleted)
+            .ToList();
 
         foreach (EntityEntry<ISoftDeletable> entry in entries)
         {
@@ -76,12 +93,17 @@ public class ECommerceDbContext : DbContext, IECommerceDbContext
             if (!entry.Entity.IsDeleted)
             {
                 entry.CurrentValues[nameof(ISoftDeletable.IsDeleted)] = true;
-                entry.CurrentValues[nameof(ISoftDeletable.DeletedAtUtc)] = DateTime.UtcNow;
 
-                if (entry.CurrentValues.Properties.Any(p => p.Name == "IsActive"))
-                {
-                    entry.CurrentValues["IsActive"] = false;
-                }
+                entry.CurrentValues[nameof(ISoftDeletable.DeletedAtUtc)] =
+                    DateTime.UtcNow;
+            }
+
+            // Обновляем только поля soft delete.
+            foreach (PropertyEntry property in entry.Properties)
+            {
+                property.IsModified =
+                    property.Metadata.Name == nameof(ISoftDeletable.IsDeleted) ||
+                    property.Metadata.Name == nameof(ISoftDeletable.DeletedAtUtc);
             }
         }
     }

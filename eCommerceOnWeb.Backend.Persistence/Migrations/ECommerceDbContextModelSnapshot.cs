@@ -180,7 +180,8 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
 
                     b.Property<int>("StockQuantity")
                         .HasColumnType("integer")
@@ -203,7 +204,8 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
 
                     b.HasIndex("Gtin")
                         .IsUnique()
-                        .HasDatabaseName("IX_products_gtin");
+                        .HasDatabaseName("IX_products_gtin")
+                        .HasFilter("gtin IS NOT NULL");
 
                     b.HasIndex("Sku")
                         .IsUnique()
@@ -226,13 +228,15 @@ namespace eCommerceOnWeb.Backend.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("BrandId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_products_brands_brand_id");
 
                     b.HasOne("eCommerceOnWeb.Backend.Domain.Aggregates.CategoryAggregate.Category", null)
                         .WithMany()
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_products_categories_category_id");
 
                     b.OwnsOne("eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate.Dimensions", "ShippingDimensions", b1 =>
                         {

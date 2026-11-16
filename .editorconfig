@@ -11,3 +11,10 @@ indent_size = 2
 [*.cs]
 # Предписывать использование file-scoped namespaces
 csharp_style_namespace_declarations = file_scoped:warning
+
+# Markdown files
+[*.md]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = false

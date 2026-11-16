@@ -11,85 +11,222 @@ namespace eCommerceOnWeb.Backend.Application.Features.Products.Commands.CreatePr
 public sealed class CreateProductCommandHandler
     : IRequestHandler<CreateProductCommand, Result<Guid>>
 {
-    private readonly IECommerceDbContext _context;
+    private const string SkuUniqueIndexName = "IX_products_sku";
+    private const string GtinUniqueIndexName = "IX_products_gtin";
+    private const string CategoryFkConstraintName = "FK_products_categories_category_id";
+    private const string BrandFkConstraintName = "FK_products_brands_brand_id";
 
-    public CreateProductCommandHandler(IECommerceDbContext context)
+    private readonly IECommerceDbContext _context;
+    private readonly IDbConstraintViolationDetector _constraintDetector;   // NEW
+
+    public CreateProductCommandHandler(
+        IECommerceDbContext context,
+        IDbConstraintViolationDetector constraintDetector)
     {
         _context = context;
+        _constraintDetector = constraintDetector;
     }
 
     public async Task<Result<Guid>> Handle(
         CreateProductCommand request,
         CancellationToken cancellationToken)
     {
+        // Нормализация SKU для pre-check уникальности.
+        string normalizedSku = request.Sku
+            .Trim()
+            .ToUpperInvariant();
+
+        // Pre-check — оптимизация UX, НЕ защита от гонок.
+        // Гарантия уникальности — unique index в БД (см. catch DbUpdateException ниже).
+        //
+        // IgnoreQueryFilters() включает soft-deleted товары: их SKU остаётся
+        // зарезервированным (исторические заказы/ERP ссылаются на него).
+        // NB: если в проекте появится tenant-filter — этот вызов обойдёт и его,
+        // сделав SKU уникальным МЕЖДУ тенантами. При необходимости — заменить
+        // на IgnoreQueryFilters(selective) + Where(TenantId == ...).
         bool skuExists = await _context.Products
-     .AnyAsync(
-         p => p.Sku == request.Sku.ToUpperInvariant(),
-         cancellationToken);
+            .IgnoreQueryFilters()
+            .AnyAsync(p => p.Sku == normalizedSku, cancellationToken);
 
         if (skuExists)
         {
             return Result<Guid>.Failure(
-                ProductErrors.SkuAlreadyExists(request.Sku));
+                ProductErrors.SkuAlreadyExists(normalizedSku));
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Gtin))
+        string? normalizedGtin = string.IsNullOrWhiteSpace(request.Gtin)
+            ? null
+            : request.Gtin.Trim();
+
+        if (normalizedGtin is not null)
         {
             bool gtinExists = await _context.Products
-                .AnyAsync(
-                    p => p.Gtin == request.Gtin,
-                    cancellationToken);
+                .IgnoreQueryFilters()
+                .AnyAsync(p => p.Gtin == normalizedGtin, cancellationToken);
 
             if (gtinExists)
             {
                 return Result<Guid>.Failure(
-                    ProductErrors.GtinAlreadyExists(request.Gtin));
+                    ProductErrors.GtinAlreadyExists(normalizedGtin));
             }
         }
 
-        Money price = Money.Create(
-             request.PriceAmount,
-             request.PriceCurrency);
+        Product product;
 
-        Dimensions dimensions = Dimensions.Create(
-            request.DimWidthCm,
-            request.DimHeightCm,
-            request.DimDepthCm,
-            request.DimWeightKg);
-
-        Product product = Product.Create(
-            request.Name,
-            request.Sku,
-            request.Gtin,
-            request.ModelNumber,
-            price,
-            request.CategoryId,
-            request.BrandId,
-            request.Description,
-            request.WarrantyMonths,
-            dimensions,
-            request.InitialStock);
-
-        foreach (ProductAttributeDto attribute in request.Attributes)
+        try
         {
-            object value = attribute.Value.ValueKind switch
+            Money price = Money.Create(
+                request.PriceAmount,
+                request.PriceCurrency);
+
+            Dimensions dimensions = Dimensions.Create(
+                request.DimWidthCm,
+                request.DimHeightCm,
+                request.DimDepthCm,
+                request.DimWeightKg);
+
+            product = Product.Create(
+                request.Name,
+                normalizedSku,
+                normalizedGtin,
+                request.ModelNumber,
+                price,
+                request.CategoryId,
+                request.BrandId,
+                request.Description,
+                request.WarrantyMonths,
+                dimensions,
+                request.InitialStock);
+
+            // FIX: null-safe. request.Attributes == null — валидатор должен
+            // отклонять, но handler не должен падать с NRE при прямом вызове
+            // (внутренние сценарии: миграция, seed, bulk-import).
+            if (request.Attributes is { Count: > 0 })
             {
-                JsonValueKind.String => attribute.Value.GetString()!,
-                JsonValueKind.Number when attribute.Value.TryGetInt64(out long l) => l,
-                JsonValueKind.Number => attribute.Value.GetDecimal(),
-                JsonValueKind.True => true,
-                JsonValueKind.False => false,
-                JsonValueKind.Null => throw new DomainException("Атрибут не может иметь значение null."),
-                _ => throw new DomainException(
-                         "Неподдерживаемый тип значения атрибута.")
-            };
-            product.SetAttribute(attribute.Key, value);
+                // NB: временно используем SetAttribute в цикле.
+                // После добавления Product.SetInitialAttributes(dict) — заменить,
+                // чтобы избежать O(N²) аллокаций Dictionary и N лишних
+                // ProductAttributeChangedEvent на одно создание.
+                foreach (ProductAttributeDto attribute in request.Attributes)
+                {
+                    object value = ConvertAttributeValue(attribute.Value);
+                    product.SetAttribute(attribute.Key, value);
+                }
+            }
+        }
+        catch (DomainException ex)
+        {
+            return Result<Guid>.Failure(
+                ProductErrors.InvalidCreateProductRequest(ex.Message));
         }
 
         _context.Products.Add(product);
 
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (DbUpdateException ex) when (
+            ex.GetBaseException() is not OperationCanceledException)  // FIX: регрессия
+        {
+            return MapDbUpdateException(
+                ex,
+                normalizedSku,
+                normalizedGtin,
+                request.CategoryId,
+                request.BrandId);
+        }
 
         return Result<Guid>.Success(product.Id);
     }
+
+    private Result<Guid> MapDbUpdateException(
+        DbUpdateException ex,
+        string normalizedSku,
+        string? normalizedGtin,
+        Guid categoryId,
+        Guid brandId)
+    {
+        // FIX: Npgsql-специфика вынесена в IDbConstraintViolationDetector
+        // (реализация — в Persistence). Application не знает про Postgres.
+        if (!_constraintDetector.TryDetect(ex, out ConstraintViolation violation))
+        {
+            return Result<Guid>.Failure(ProductErrors.PersistenceError());
+        }
+
+        switch (violation.Kind)
+        {
+            case ConstraintKind.Unique:
+                return violation.ConstraintName switch
+                {
+                    SkuUniqueIndexName =>
+                        Result<Guid>.Failure(
+                            ProductErrors.SkuAlreadyExists(normalizedSku)),
+
+                    GtinUniqueIndexName when normalizedGtin is not null =>
+                        Result<Guid>.Failure(
+                            ProductErrors.GtinAlreadyExists(normalizedGtin)),
+
+                    _ => Result<Guid>.Failure(ProductErrors.PersistenceError())
+                };
+
+            // NEW: FK violations — клиент видит «категория/бренд не найдены»,
+            // а не generic «ошибка хранилища».
+            case ConstraintKind.ForeignKey:
+                return violation.ConstraintName switch
+                {
+                    CategoryFkConstraintName =>
+                        Result<Guid>.Failure(
+                            ProductErrors.CategoryNotFound(categoryId)),
+
+                    BrandFkConstraintName =>
+                        Result<Guid>.Failure(
+                            ProductErrors.BrandNotFound(brandId)),
+
+                    _ => Result<Guid>.Failure(ProductErrors.PersistenceError())
+                };
+
+            default:
+                return Result<Guid>.Failure(ProductErrors.PersistenceError());
+        }
+    }
+
+    private static object ConvertAttributeValue(JsonElement value)
+    {
+        return value.ValueKind switch
+        {
+            // FIX: GetString() контрактно nullable — без `!`
+            JsonValueKind.String =>
+                value.GetString()
+                ?? throw new DomainException(
+                    "Строковое значение атрибута не может быть null."),
+
+            JsonValueKind.Number when value.TryGetInt64(out long number) =>
+                number,
+
+            JsonValueKind.Number when value.TryGetDecimal(out decimal number) =>
+                number,
+
+            JsonValueKind.True => true,
+
+            JsonValueKind.False => false,
+
+            JsonValueKind.Null =>
+                throw new DomainException(
+                    "Атрибут не может иметь значение null."),
+
+            JsonValueKind.Number =>
+                throw new DomainException(
+                    "Числовое значение атрибута выходит за допустимый диапазон."),
+
+            _ =>
+                throw new DomainException(
+                    "Неподдерживаемый тип значения атрибута.")
+        };
+    }
 }
+
