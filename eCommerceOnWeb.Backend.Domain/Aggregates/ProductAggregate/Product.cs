@@ -9,47 +9,33 @@ namespace eCommerceOnWeb.Backend.Domain.Aggregates.ProductAggregate;
 //перейти на:
 //EF Core SaveChangesInterceptor + Outbox Pattern.
 
-
 public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
 {
+    private readonly List<ProductImage> _images = new();
+
     // --- Базовые свойства ---
     public string Name { get; private set; } = string.Empty;
     public string Sku { get; private set; } = string.Empty; // Внутренний артикул (например, "IPH-15PRO-128")
     public string? Gtin { get; private set; } // Международный штрих-код (EAN-13 / UPC) для сканеров и маркетплейсов
     public string ModelNumber { get; private set; } = string.Empty; // Номер модели производителя (например, "A3106")
     public Money Price { get; private set; } = Money.Zero();
-
-    // --- Специфика электроники ---
     public int WarrantyMonths { get; private set; } // Гарантия в месяцах (0 - без гарантии)
     public Dimensions ShippingDimensions { get; private set; } = null!;
     public int StockQuantity { get; private set; }
 
-    // Status описывает бизнес-состояние публикации товара enum.
     // При усложнении жизненного цикла возможен переход на Smart Enum.
-    // Статуса Editing нет: редактирование выполняется
-    // в текущем состоянии товара.
-    // Draft, Active и Inactive могут изменяться согласно
-    // правилам агрегата.
-    // Discontinued и Deleted запрещают изменения.
+    // Редактирование выполняется в текущем состоянии товара.
     public ProductStatus Status { get; private set; }
-
     public Guid CategoryId { get; private set; }
     public Guid BrandId { get; private set; }
-
     public string Description { get; private set; } = string.Empty;
-
-    private readonly List<ProductImage> _images = new();
-    public IReadOnlyCollection<ProductImage> Images =>
-        _images.AsReadOnly();
-
+    public IReadOnlyCollection<ProductImage> Images => _images.AsReadOnly();
     public ProductAttributes Attributes { get; private set; }
         = ProductAttributes.Empty();
-
-    // --- Софт-делит ---
     public bool IsDeleted { get; private set; }
     public DateTime? DeletedAtUtc { get; private set; }
 
-    private Product() { } // Для EF Core
+    private Product() { }
 
     private Product(
         string name,
@@ -64,7 +50,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
         Dimensions shippingDimensions,
         int initialStock = 0)
     {
-        ValidateBasicAttributes(name, sku, modelNumber, categoryId,
+        ValidateBasicAttributes(categoryId,
             brandId);
 
         if (warrantyMonths < 0) throw new DomainException(
@@ -74,22 +60,63 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
             throw new DomainException(
                 "Начальный запас не может быть отрицательным.");
 
-        Name = name.Trim();
-        Sku = sku.Trim().ToUpperInvariant();
-        Gtin = string.IsNullOrWhiteSpace(gtin) ? null : gtin.Trim();
-        ModelNumber = modelNumber.Trim();
-        Price = price ?? throw new ArgumentNullException(nameof(price));
+        // Нормализация и валидация строк.
+        Name = NormalizeName(name);
+        Sku = NormalizeSku(sku);
+        ModelNumber = NormalizeModelNumber(modelNumber);
+        Gtin = NormalizeGtin(gtin);
+        Description = NormalizeDescription(description);
+
+        ArgumentNullException.ThrowIfNull(price);
+        ArgumentNullException.ThrowIfNull(shippingDimensions);
+
+        Price = price;
         CategoryId = categoryId;
         BrandId = brandId;
-        Description = description?.Trim() ?? string.Empty;
         WarrantyMonths = warrantyMonths;
-        ShippingDimensions = shippingDimensions ?? throw new ArgumentNullException(nameof(shippingDimensions));
+        ShippingDimensions = shippingDimensions;
         StockQuantity = initialStock;
         Status = ProductStatus.Draft;     // Начальное состояние
     }
 
-    // --- МЕТОДЫ УПРАВЛЕНИЯ ИЗОБРАЖЕНИЯМИ (Инварианты галереи) ---
+    //---Factory---
+    public static Product Create(
+        string name,
+        string sku,
+        string? gtin,
+        string modelNumber,
+        Money price,
+        Guid categoryId,
+        Guid brandId,
+        string? description,
+        int warrantyMonths,
+        Dimensions shippingDimensions,
+        int initialStock = 0)
+    {
+        Product product = new Product(
+            name,
+            sku,
+            gtin,
+            modelNumber,
+            price,
+            categoryId,
+            brandId,
+            description,
+            warrantyMonths,
+            shippingDimensions,
+            initialStock);
 
+        // Добавляем событие в коллекцию агрегата
+        product.AddDomainEvent(
+            new ProductCreatedEvent(
+                product.Id,
+                product.Sku,
+                product.Price));
+
+        return product;
+    }
+
+    //---Public methods — Images---
     public void AddImage(
         string storageKey,
         string altText,
@@ -120,9 +147,9 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
         _images.Add(image);
 
         SortImages();
-        //_images.Sort((x, y) => x.DisplayOrder.CompareTo(y.DisplayOrder)); // Хранит коллекцию всегда отсортированной в памяти
 
-        // Если передан флаг setAsMain или это вообще первая картинка товара, делаем её главной
+        // Если передан флаг setAsMain или это вообще первая картинка товара,
+        // делаем её главной
         if (setAsMain || _images.Count == 1)
         {
             SetMainImage(image.Id);
@@ -164,30 +191,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
             _images[0].IsMain = true;
     }
 
-    // --- ДРУГИЕ БИЗНЕС-МЕТОДЫ ---
-
-    /// <summary>
-    /// Обновляет описание товара. Пустое описание (null / "" / whitespace)
-    /// допустимо в Draft и очищает поле. Проверка «нельзя публиковать
-    /// без описания» выполняется в <see cref="Activate"/>.
-    /// </summary>
-    public void UpdateDescription(string? description)
-    {
-        ThrowIfNotEditable();
-
-        string normalized = description?.Trim() ?? string.Empty;
-
-        if (Status is ProductStatus.Active && normalized.Length == 0)
-            throw new DomainException(
-                "Нельзя очистить описание активного товара.");
-
-        if (Description.Equals(normalized, StringComparison.Ordinal))
-            return;
-
-        Description = normalized;
-    }
-
-    // Установить или обновить атрибут
+    //---Public methods — Attributes ---
     public void SetAttribute<T>(string key, T value)
      where T : notnull
     {
@@ -214,7 +218,6 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
                 value))
             return;
 
-
         // Если удалось получить типизированное значение,
         // используем его; иначе сохраняем исходное значение.
         object? eventOldValue = hasTypedOldValue
@@ -231,15 +234,9 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
                 value));
     }
 
-    // Удалить атрибут
     public void RemoveAttribute(string key)
     {
         ThrowIfNotEditable();
-
-        //object? oldValue = GetAttribute<object>(key);
-
-        //if (oldValue is null)
-        //    return;
 
         if (!Attributes.TryGetRawValue(key, out object? oldValue))
             return;
@@ -257,6 +254,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
     // Получить значение атрибута (для внутренних нужд)
     public T? GetAttribute<T>(string key) => Attributes.GetValue<T>(key);
 
+    //--Public methods — Basic attributes --
     public void UpdateShippingDimensions(Dimensions newDimensions)
     {
         ThrowIfNotEditable();
@@ -267,6 +265,27 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
             return;
 
         ShippingDimensions = newDimensions;
+    }
+
+    /// <summary>
+    /// Обновляет описание товара. Пустое описание (null / "" / whitespace)
+    /// допустимо в Draft и очищает поле. Проверка «нельзя публиковать
+    /// без описания» выполняется в <see cref="Activate"/>.
+    /// </summary>
+    public void UpdateDescription(string? description)
+    {
+        ThrowIfNotEditable();
+
+        string normalized = NormalizeDescription(description);
+
+        if (Status is ProductStatus.Active && normalized.Length == 0)
+            throw new DomainException(
+                "Нельзя очистить описание активного товара.");
+
+        if (Description.Equals(normalized, StringComparison.Ordinal))
+            return;
+
+        Description = normalized;
     }
 
     public void UpdateWarranty(int months)
@@ -303,6 +322,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
             newPrice));
     }
 
+    //---Public methods — Stock---
     public void DeductStock(int quantity)
     {
         ThrowIfDeleted();
@@ -346,43 +366,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
             AddDomainEvent(new ProductBackInStockEvent(Id));
     }
 
-    public static Product Create(
-        string name,
-        string sku,
-        string? gtin,
-        string modelNumber,
-        Money price,
-        Guid categoryId,
-        Guid brandId,
-        string? description,
-        int warrantyMonths,
-        Dimensions shippingDimensions,
-        int initialStock = 0)
-
-    {
-        Product product = new Product(
-            name,
-            sku,
-            gtin,
-            modelNumber,
-            price,
-            categoryId,
-            brandId,
-            description,
-            warrantyMonths,
-            shippingDimensions,
-            initialStock);
-
-        // Добавляем событие в коллекцию агрегата
-        product.AddDomainEvent(
-            new ProductCreatedEvent(
-                product.Id,
-                product.Sku,
-                product.Price));
-
-        return product;
-    }
-
+    //---Public methods — Lifecycle---
     public void Delete()
     {
         if (IsDeleted)
@@ -443,7 +427,8 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
         if (Status is ProductStatus.Draft)
         {
             throw new DomainException(
-                "Нельзя деактивировать товар, который никогда не был опубликован.");
+                "Нельзя деактивировать товар, " +
+                "который никогда не был опубликован.");
         }
 
         if (Status.IsTerminal())
@@ -451,7 +436,6 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
             throw new DomainException(
                 "Нельзя деактивировать снятый с производства товар.");
         }
-
         Status = ProductStatus.Inactive;
 
         AddDomainEvent(
@@ -462,9 +446,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
     /// Окончательно снимает товар с продажи.
     /// Разрешено из любого нетерминального статуса
     /// (Draft, Active, Inactive).
-    ///
     /// Повторный вызов является no-op.
-    ///
     /// StockQuantity не изменяется.
     /// Списание или иное управление остатком выполняется
     /// отдельным процессом.
@@ -484,13 +466,84 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
                 reason));
     }
 
-    // Для AddImage, RemoveImage
-    private void SortImages()
+    //---Public methods — Identity fields---
+    public void Rename(string name)
     {
-        _images.Sort(
-            (x, y) => x.DisplayOrder.CompareTo(y.DisplayOrder));
+        ThrowIfPublished();
+
+        string normalized = NormalizeName(name);
+
+        if (Name == normalized)
+            return;
+
+        Name = normalized;
     }
 
+    public void ChangeSku(string sku)
+    {
+        ThrowIfPublished();
+
+        string normalized = NormalizeSku(sku);
+
+        if (Sku == normalized)
+            return;
+
+        Sku = normalized;
+    }
+
+    public void ChangeModelNumber(string modelNumber)
+    {
+        ThrowIfPublished();
+
+        string normalized = NormalizeModelNumber(modelNumber);
+
+        if (ModelNumber == normalized)
+            return;
+
+        ModelNumber = normalized;
+    }
+
+    public void ChangeCategory(Guid categoryId)
+    {
+        ThrowIfPublished();
+
+        if (categoryId == Guid.Empty)
+            throw new DomainException(
+                "Категория обязательна.");
+
+        if (CategoryId == categoryId)
+            return;
+
+        CategoryId = categoryId;
+    }
+
+    public void ChangeBrand(Guid brandId)
+    {
+        ThrowIfPublished();
+
+        if (brandId == Guid.Empty)
+            throw new DomainException(
+                "Бренд обязателен.");
+
+        if (BrandId == brandId)
+            return;
+
+        BrandId = brandId;
+    }
+
+    public void ChangeGtin(string? gtin)
+    {
+        ThrowIfPublished();
+
+        string? normalized = NormalizeGtin(gtin);
+
+        if (Gtin == normalized)
+            return;
+
+        Gtin = normalized;
+    }
+
+    //---Private — Guards---
     /// <summary>
     /// Проверяет операции, которые разрешены только
     /// для неопубликованных товаров.
@@ -501,7 +554,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
     {
         ThrowIfNotEditable();
 
-        if (Status == ProductStatus.Active)
+        if (Status is ProductStatus.Active)
             throw new DomainException(
                 "Опубликованный товар нельзя изменять в этой операции.");
     }
@@ -524,6 +577,7 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
                 "Удалённый товар нельзя изменить.");
     }
 
+    //---Private — Normalizers---
     /// <summary>
     /// Бросает, если товар снят с производства.
     /// Сейчас Discontinued — единственный терминальный статус,
@@ -538,22 +592,102 @@ public class Product : BaseEntity, IAggregateRoot, ISoftDeletable
                 "Товар снят с производства и не может быть изменён.");
     }
 
-    private static void ValidateBasicAttributes(
-        string name,
-        string sku,
-        string modelNumber,
-        Guid categoryId,
-        Guid brandId)
+    private static string NormalizeName(string? name)
     {
-        if (string.IsNullOrWhiteSpace(name)) throw new DomainException(
-            "Название товара обязательно.");
-        if (string.IsNullOrWhiteSpace(sku)) throw new DomainException(
-            "SKU товара обязателен.");
-        if (string.IsNullOrWhiteSpace(modelNumber)) throw new DomainException(
-            "Партномер (Model Number) обязателен для электроники.");
-        if (categoryId == Guid.Empty) throw new DomainException(
-            "Категория обязательна.");
-        if (brandId == Guid.Empty) throw new DomainException(
-            "Бренд обязателен.");
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException(
+                "Название товара обязательно.");
+
+        string normalized = name.Trim();
+
+        if (normalized.Length > ProductConstraints.NameMaxLength)
+            throw new DomainException(
+                $"Название товара не должно превышать " +
+                $"{ProductConstraints.NameMaxLength} символов.");
+
+        return normalized;
+    }
+
+    private static string NormalizeSku(string? sku)
+    {
+        if (string.IsNullOrWhiteSpace(sku))
+            throw new DomainException(
+                "SKU товара обязателен.");
+
+        string normalized = sku.Trim().ToUpperInvariant();
+
+        if (normalized.Length > ProductConstraints.SkuMaxLength)
+            throw new DomainException(
+                $"SKU не должен превышать " +
+                $"{ProductConstraints.SkuMaxLength} символов.");
+
+        return normalized;
+    }
+
+    private static string NormalizeModelNumber(string? modelNumber)
+    {
+        if (string.IsNullOrWhiteSpace(modelNumber))
+            throw new DomainException(
+                "Партномер обязателен.");
+
+        string normalized = modelNumber.Trim();
+
+        if (normalized.Length > ProductConstraints.ModelNumberMaxLength)
+            throw new DomainException(
+                $"Партномер не должен превышать " +
+                $"{ProductConstraints.ModelNumberMaxLength} символов.");
+
+        return normalized;
+    }
+
+    private static string? NormalizeGtin(string? gtin)
+    {
+        if (string.IsNullOrWhiteSpace(gtin))
+            return null;
+
+        string normalized = gtin.Trim();
+
+        if (normalized.Length != ProductConstraints.GtinMaxLength ||
+            normalized.Any(c => c < '0' || c > '9'))
+        {
+            throw new DomainException(
+                "GTIN должен состоять ровно из 13 цифр (формат EAN-13).");
+        }
+        return normalized;
+    }
+
+    private static string NormalizeDescription(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+            throw new DomainException("Описание товара обязательно.");
+
+        string normalized = description.Trim();
+
+        if (normalized.Length > ProductConstraints.DescriptionMaxLength)
+            throw new DomainException(
+                $"Описание не должно превышать {ProductConstraints.DescriptionMaxLength} символов.");
+
+        return normalized;
+    }
+
+    //---Private — Validators---
+    private static void ValidateBasicAttributes(
+         Guid categoryId,
+         Guid brandId)
+    {
+        if (categoryId == Guid.Empty)
+            throw new DomainException(
+                "Категория обязательна.");
+
+        if (brandId == Guid.Empty)
+            throw new DomainException(
+                "Бренд обязателен.");
+    }
+
+    //---Private — Utilities---
+    private void SortImages()
+    {
+        _images.Sort(
+            (x, y) => x.DisplayOrder.CompareTo(y.DisplayOrder));
     }
 }

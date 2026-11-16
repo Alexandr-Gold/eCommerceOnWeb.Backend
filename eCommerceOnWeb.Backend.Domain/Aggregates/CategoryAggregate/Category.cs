@@ -19,11 +19,9 @@ public sealed class Category
 
     public int DisplayOrder { get; private set; }
 
-
     private Category()
     {
     }
-
 
     private Category(
         string name,
@@ -32,7 +30,6 @@ public sealed class Category
         Name = name;
         Slug = slug;
     }
-
 
     public static Category Create(
         string name,
@@ -51,7 +48,6 @@ public sealed class Category
             slug.Trim().ToLowerInvariant());
     }
 
-
     public void SetImage(string storageKey)
     {
         if (string.IsNullOrWhiteSpace(storageKey))
@@ -59,7 +55,6 @@ public sealed class Category
 
         ImageStorageKey = storageKey;
     }
-
 
     public void UpdateDescription(string? description)
     {

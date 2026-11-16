@@ -4,7 +4,7 @@ using FluentAssertions;
 
 namespace eCommerceOnWeb.Backend.Domain.UnitTests.Aggregates.ProductAggregate;
 
-public class MoneyTests
+public class ProductMoneyTests
 {
     [Fact]
     public void Ctor_ShouldThrow_WhenAmountNegative()

@@ -60,9 +60,18 @@ public sealed record Money
     /// <summary>Семантический алиас для <c>new Money(...)</c>. Валидация — в ctor.</summary>
     public static Money Create(
         decimal amount,
-        string currency) => new(amount, currency);
+        string? currency) => new(amount, currency);
 
     public bool IsZero => Amount == 0m;
     public bool IsPositive => Amount > 0m;
+
+    public static bool IsSupportedCurrency(string? currency)
+    {
+        if (string.IsNullOrWhiteSpace(currency))
+            return false;
+
+        return SupportedCurrencies.Contains(
+            currency.Trim().ToUpperInvariant());
+    }
 }
 

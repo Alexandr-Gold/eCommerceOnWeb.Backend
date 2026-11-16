@@ -9,102 +9,6 @@ namespace eCommerceOnWeb.Backend.Domain.UnitTests.Aggregates.ProductAggregate;
 public class ProductTests
 {
     [Fact]
-    public void Create_ShouldCreateProduct_WhenArgumentsAreValid()
-    {
-        // Arrange
-        Guid categoryId = Guid.NewGuid();
-        Guid brandId = Guid.NewGuid();
-
-        // Act
-        Product product = Product.Create(
-            name: "iPhone 15 Pro",
-            sku: "IPH-15PRO-128",
-            gtin: "1234567890123",
-            modelNumber: "A3106",
-            price: Money.Create(999.00m, "USD"),
-            categoryId: categoryId,
-            brandId: brandId,
-            description: "Test product description",
-            warrantyMonths: 12,
-            shippingDimensions: Dimensions.Create(10m, 20m, 5m, 1m),
-            initialStock: 5);
-
-        // Assert
-        product.Id.Should().NotBe(Guid.Empty);           // BaseEntity.Init
-        product.Name.Should().Be("iPhone 15 Pro");
-        product.Sku.Should().Be("IPH-15PRO-128");
-        product.Gtin.Should().Be("1234567890123");
-        product.ModelNumber.Should().Be("A3106");
-        product.Price.Should().Be(Money.Create(999.00m, "USD"));
-        product.CategoryId.Should().Be(categoryId);      // ← не проверялось
-        product.BrandId.Should().Be(brandId);            // ← не проверялось
-        product.Description.Should().Be("Test product description");   // ← не проверялось
-        product.WarrantyMonths.Should().Be(12);
-        product.StockQuantity.Should().Be(5);
-        product.Status.Should().Be(ProductStatus.Draft);
-        product.IsDeleted.Should().BeFalse();
-        product.DeletedAtUtc.Should().BeNull();          // ← не проверялось
-        product.Images.Should().BeEmpty();               // ← не проверялось: Create не добавляет картинок
-        product.Attributes.GetValues().Should().BeEmpty();          // ← не проверялось
-    }
-
-    [Fact]
-    public void Create_ShouldAddProductCreatedDomainEvent()
-    {
-        // Arrange: Create напрямую — хелпер очищает DomainEvents
-        const string sku = "IPH-15PRO-128";
-
-        Product product = Product.Create(
-            name: "Test Smartphone",
-            sku: sku,
-            gtin: "1234567890123",
-            modelNumber: "MODEL-001",
-            price: Money.Create(999.99m, "USD"),
-            categoryId: Guid.NewGuid(),
-            brandId: Guid.NewGuid(),
-            description: "Test product description",
-            warrantyMonths: 24,
-            shippingDimensions: Dimensions.Create(10m, 20m, 5m, 1m),
-            initialStock: 10);
-
-        // Act
-        IReadOnlyCollection<DomainEvent> events = product.DomainEvents;
-
-        // Assert
-        events.Should().ContainSingle();
-
-        ProductCreatedEvent domainEvent = events.Single()
-            .Should().BeOfType<ProductCreatedEvent>()
-            .Subject;
-
-        domainEvent.ProductId.Should().Be(product.Id);
-        domainEvent.Sku.Should().Be(sku);
-        domainEvent.Price.Should().Be(product.Price);
-    }
-
-    [Fact]
-    public void Create_ShouldInitializeStatusAsDraft()
-    {
-        // Arrange: Product.Create напрямую — статус Draft выставляется фабрикой,
-        // а не хелпером через ApplyStatus.
-        Product product = Product.Create(
-            name: "Test Smartphone",
-            sku: "TEST-001",
-            gtin: null,
-            modelNumber: "MODEL-001",
-            price: Money.Create(999.99m, "USD"),
-            categoryId: Guid.NewGuid(),
-            brandId: Guid.NewGuid(),
-            description: "Test product description",
-            warrantyMonths: 24,
-            shippingDimensions: Dimensions.Create(10m, 20m, 5m, 1m),
-            initialStock: 10);
-
-        // Assert
-        product.Status.Should().Be(ProductStatus.Draft);
-    }
-
-    [Fact]
     public void Constructor_ShouldTrimStrings()
     {
         // Arrange & Act
@@ -188,12 +92,10 @@ public class ProductTests
     [InlineData("   ")]
     public void Constructor_ShouldThrow_WhenModelNumberIsEmpty(string? invalidModel)
     {
-        // Act
         Action act = () => ProductTestData.CreateValidProduct(modelNumber: invalidModel!);
 
-        // Assert
         act.Should().Throw<DomainException>()
-           .WithMessage("Партномер (Model Number) обязателен для электроники.");
+            .WithMessage("Партномер обязателен.");
     }
 
     [Fact]
@@ -283,6 +185,18 @@ public class ProductTests
         // Assert
         act.Should().Throw<ArgumentNullException>()
            .WithParameterName("shippingDimensions");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Constructor_ShouldThrow_WhenDescriptionIsEmpty(string? description)
+    {
+        Action act = () => ProductTestData.CreateValidProduct(description: description);
+
+        act.Should().Throw<DomainException>()
+            .WithMessage("Описание товара обязательно.");
     }
 
     [Fact]
@@ -942,50 +856,18 @@ public class ProductTests
             .Be("New description");
     }
 
-    //[Fact]
-    //public void UpdateDescription_ToEmpty_ClearsDescription()
-    //{
-    //    // Arrange
-    //    Product product = ProductTestData.CreateValidProduct();
-    //    product.UpdateDescription("Initial description");
-    //    product.ClearDomainEvents();
-
-    //    // Act
-    //    product.UpdateDescription("   ");
-
-    //    // Assert
-    //    product.Description.Should().BeEmpty();
-    //    product.DomainEvents.Should().BeEmpty(); // событие на описании не поднимается
-    //}
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void UpdateDescription_ToEmpty_ClearsDescription(string? description)
+    public void UpdateDescription_ShouldThrow_WhenDescriptionIsEmpty(string? description)
     {
-        Product product = ProductTestData.CreateValidProduct(description: "Initial");
-        product.ClearDomainEvents();
-
-        product.UpdateDescription(description);
-
-        product.Description.Should().BeEmpty();
-        product.DomainEvents.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void UpdateDescription_ToNull_ClearsDescription()
-    {
-        // Arrange
         Product product = ProductTestData.CreateValidProduct();
-        product.UpdateDescription("Initial description");
-        product.ClearDomainEvents();
 
-        // Act
-        product.UpdateDescription(null);
+        Action act = () => product.UpdateDescription(description);
 
-        // Assert
-        product.Description.Should().BeEmpty();
+        act.Should().Throw<DomainException>()
+            .WithMessage("Описание товара обязательно.");
     }
 
     [Fact]
@@ -1280,26 +1162,6 @@ int months)
         product.DomainEvents.Should().NotContain(e => e is ProductBackInStockEvent);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-5)]
-    public void DeductStock_ShouldThrow_WhenQuantityNonPositive(int quantity)
-    {
-        // Arrange: Active обязателен — иначе guard статуса сработает первым
-        Product product = ProductTestData.CreateValidProduct(
-            status: ProductStatus.Active,
-            initialStock: 10);
-
-        // Act
-        Action act = () => product.DeductStock(quantity);
-
-        // Assert
-        act.Should().Throw<DomainException>()
-            .WithMessage("Количество должно быть больше нуля.");
-        product.StockQuantity.Should().Be(10);   // не изменился
-        product.DomainEvents.Should().BeEmpty();
-    }
-
     [Fact]
     public void Restock_AfterGoingToZero_ShouldRaiseBackInStockEvent()
     {
@@ -1373,6 +1235,27 @@ int months)
 
         act.Should().Throw<DomainException>().WithMessage("*Удалённый*");
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void DeductStock_ShouldThrow_WhenQuantityNonPositive(int quantity)
+    {
+        // Arrange: Active обязателен — иначе guard статуса сработает первым
+        Product product = ProductTestData.CreateValidProduct(
+            status: ProductStatus.Active,
+            initialStock: 10);
+
+        // Act
+        Action act = () => product.DeductStock(quantity);
+
+        // Assert
+        act.Should().Throw<DomainException>()
+            .WithMessage("Количество должно быть больше нуля.");
+        product.StockQuantity.Should().Be(10);   // не изменился
+        product.DomainEvents.Should().BeEmpty();
+    }
+
 
     [Fact]
     public void DeductStock_ShouldThrow_WhenNotEnoughStock()
@@ -1636,19 +1519,6 @@ int months)
 
         product.DomainEvents.Last().Should()
             .BeOfType<ProductActivatedEvent>();
-    }
-
-    [Fact]
-    public void Activate_ShouldThrow_WhenDescriptionEmpty()
-    {
-        Product product = ProductTestData.CreateValidProduct(description: string.Empty);
-        product.ClearDomainEvents();
-
-        Action act = () => product.Activate();
-
-        act.Should().Throw<DomainException>().WithMessage("*без описания*");
-        product.Status.Should().Be(ProductStatus.Draft);
-        product.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]

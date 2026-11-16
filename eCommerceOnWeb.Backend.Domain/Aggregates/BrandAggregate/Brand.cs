@@ -22,7 +22,6 @@ public sealed class Brand
     {
     }
 
-
     private Brand(
         string name,
         string slug)
@@ -30,7 +29,6 @@ public sealed class Brand
         Name = name;
         Slug = slug;
     }
-
 
     public static Brand Create(
         string name,
@@ -49,7 +47,6 @@ public sealed class Brand
             slug.Trim().ToLowerInvariant());
     }
 
-
     public void SetLogo(string storageKey)
     {
         if (string.IsNullOrWhiteSpace(storageKey))
@@ -57,7 +54,6 @@ public sealed class Brand
 
         LogoStorageKey = storageKey;
     }
-
 
     public void UpdateDescription(string? description)
     {
