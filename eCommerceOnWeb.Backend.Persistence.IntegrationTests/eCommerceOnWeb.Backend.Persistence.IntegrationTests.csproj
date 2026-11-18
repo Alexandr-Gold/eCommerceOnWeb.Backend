@@ -14,6 +14,7 @@
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="FluentAssertions" Version="8.11.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="Respawn" Version="6.2.1" />
     <PackageReference Include="xunit" Version="2.5.3" />
@@ -24,6 +25,11 @@
     <ProjectReference Include="..\eCommerceOnWeb.Backend.Application\eCommerceOnWeb.Backend.Application.csproj" />
     <ProjectReference Include="..\eCommerceOnWeb.Backend.Persistence\eCommerceOnWeb.Backend.Persistence.csproj" />
   </ItemGroup>
+    <ItemGroup>
+        <None Update="appsettings.Testing.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />

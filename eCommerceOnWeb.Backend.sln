@@ -19,23 +19,21 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eCommerceOnWeb.Backend.Pers
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eCommerceOnWeb.Backend.WebApi", "eCommerceOnWeb.Backend.WebApi\eCommerceOnWeb.Backend.WebApi.csproj", "{620F9DEF-9259-4C63-A810-095FC23E5B87}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Элементы решения", "Элементы решения", "{754FC069-D67B-A9D7-50A1-8D1CA196D8F1}"
-	ProjectSection(SolutionItems) = preProject
-		docker-compose.yml = docker-compose.yml
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{911305EC-9500-429F-9C64-E4B34A1E2A70}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eCommerceOnWeb.Backend.Domain.UnitTests", "eCommerceOnWeb.Backend.Domain.UnitTests\eCommerceOnWeb.Backend.Domain.UnitTests.csproj", "{22167E74-F92F-446F-8120-C4C2EF90AB45}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{51C33E17-2B50-4E83-95A9-884A6E5219C9}"
-	ProjectSection(SolutionItems) = preProject
-		.editorconfig = .editorconfig
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eCommerceOnWeb.Backend.Application.UnitTests", "eCommerceOnWeb.Backend.Application.UnitTests\eCommerceOnWeb.Backend.Application.UnitTests.csproj", "{C17F5F3B-6247-4E25-AF4E-6EDAA4BAF84D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eCommerceOnWeb.Backend.Persistence.IntegrationTests", "eCommerceOnWeb.Backend.Persistence.IntegrationTests\eCommerceOnWeb.Backend.Persistence.IntegrationTests.csproj", "{88C466D5-BE1F-448C-8CFA-A7434CCFC97D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Элементы решения", "Элементы решения", "{754FC069-D67B-A9D7-50A1-8D1CA196D8F1}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.env.example = .env.example
+		docker-compose.yml = docker-compose.yml
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

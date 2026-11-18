@@ -1,6 +1,5 @@
 using eCommerceOnWeb.Backend.Application;
 using eCommerceOnWeb.Backend.Application.Common.Interfaces;
-using eCommerceOnWeb.Backend.Domain.Common.Interfaces;
 using eCommerceOnWeb.Backend.Persistence;
 using eCommerceOnWeb.Backend.Persistence.Contexts; // Подключаем слой инфраструктуры
 using eCommerceOnWeb.Backend.Persistence.Services;
@@ -18,12 +17,6 @@ builder.Services.AddSwaggerGen();
 builder.Services
     .AddApplication()
     .AddPersistence(builder.Configuration);
-
-// Регистрация репозитория для операций Записи и Чтения
-builder.Services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
-
-// Регистрация репозитория ТОЛЬКО для Чтения
-builder.Services.AddScoped(typeof(IReadRepository<>), typeof(EfRepository<>));
 
 // Регистрация сервиса генерации путей к картинкам
 builder.Services.AddScoped<IStorageService, StorageService>();

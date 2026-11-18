@@ -6,5 +6,5 @@
 public sealed class PostgresTestCollection
     : ICollectionFixture<PostgresTestDatabaseFixture>
 {
-    public const string Name = "PostgreSQL";
+    internal const string Name = "PostgreSQL";
 }

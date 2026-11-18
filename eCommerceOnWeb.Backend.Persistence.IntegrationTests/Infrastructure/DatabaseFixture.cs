@@ -27,11 +27,9 @@ public sealed class DatabaseFixture : IAsyncLifetime
 
     public Guid BrandId { get; private set; }
 
-
     // --------------------------------------------------
     // Initialization
     // --------------------------------------------------
-
     public async Task InitializeAsync()
     {
         ConnectionString = GetConnectionString();
@@ -110,11 +108,9 @@ public sealed class DatabaseFixture : IAsyncLifetime
         }
     }
 
-
     // --------------------------------------------------
     // Database reset
     // --------------------------------------------------
-
     public async Task ResetAsync()
     {
         if (_respawner is null)
@@ -145,11 +141,9 @@ public sealed class DatabaseFixture : IAsyncLifetime
             await TestReferenceData.SeedAsync(context);
     }
 
-
     // --------------------------------------------------
     // DI scope
     // --------------------------------------------------
-
     public IServiceScope CreateScope()
     {
         if (_serviceProvider is null)
@@ -161,11 +155,9 @@ public sealed class DatabaseFixture : IAsyncLifetime
         return _serviceProvider.CreateScope();
     }
 
-
     // --------------------------------------------------
     // Connection string
     // --------------------------------------------------
-
     private static string GetConnectionString()
     {
         // First try the current process environment.
@@ -200,7 +192,6 @@ public sealed class DatabaseFixture : IAsyncLifetime
         return connectionString;
     }
 
-
     private static void ValidateDatabaseConnection(
         string connectionString)
     {
@@ -218,11 +209,9 @@ public sealed class DatabaseFixture : IAsyncLifetime
         }
     }
 
-
     // --------------------------------------------------
     // Disposal
     // --------------------------------------------------
-
     public async Task DisposeAsync()
     {
         if (_serviceProvider is not null)
@@ -233,11 +222,9 @@ public sealed class DatabaseFixture : IAsyncLifetime
     }
 }
 
-
 // ======================================================
 // Reference data for integration tests
 // ======================================================
-
 internal static class TestReferenceData
 {
     public static async Task<(Guid CategoryId, Guid BrandId)> SeedAsync(

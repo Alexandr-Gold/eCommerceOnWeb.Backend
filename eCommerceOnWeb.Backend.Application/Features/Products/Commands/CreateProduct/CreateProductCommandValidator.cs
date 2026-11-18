@@ -53,8 +53,8 @@ public sealed class CreateProductCommandValidator
 
         RuleFor(x => x.PriceAmount)
             .Cascade(CascadeMode.Stop)
-            .GreaterThanOrEqualTo(0)
-            .WithMessage("Цена не может быть отрицательной.")
+            .GreaterThan(0)
+            .WithMessage("Цена должна быть больше нуля.")
             .Must(HaveValidScale)
             .WithMessage(
                 "Цена может содержать не более двух знаков после запятой.");

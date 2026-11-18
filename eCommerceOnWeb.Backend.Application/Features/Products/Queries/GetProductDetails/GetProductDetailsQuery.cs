@@ -3,4 +3,5 @@ using MediatR;
 
 namespace eCommerceOnWeb.Backend.Application.Features.Products.Queries.GetProductDetails;
 
-public record GetProductDetailsQuery(Guid Id) : IRequest<Result<ProductDetailsDto>>;
+public record GetProductDetailsQuery(Guid Id) :
+    IRequest<Result<ProductDetailsDto>>;
