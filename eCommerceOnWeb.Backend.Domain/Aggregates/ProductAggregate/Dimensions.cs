@@ -38,7 +38,8 @@ public record Dimensions
             weightKg <= 0)
         {
             throw new DomainException(
-                "Габариты и вес для доставки электроники должны быть больше нуля.");
+                "Габариты и вес для доставки электроники должны " +
+                "быть больше нуля.");
         }
 
         return new Dimensions(

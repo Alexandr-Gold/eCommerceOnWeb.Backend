@@ -18,7 +18,7 @@ public sealed class PostgresTestDatabaseFixture : IAsyncLifetime
 
     internal TestServiceProvider ServiceProvider =>
         _serviceProvider ?? throw new InvalidOperationException(
-            "Test service provider is not initialized.");
+            "Поставщик услуг тестирования не инициализирован.");
 
     public async Task InitializeAsync()
     {
@@ -27,9 +27,10 @@ public sealed class PostgresTestDatabaseFixture : IAsyncLifetime
             .AddEnvironmentVariables()
             .Build();
 
-        ConnectionString = configuration.GetConnectionString("DefaultConnection")
+        ConnectionString = configuration.GetConnectionString(
+            "DefaultConnection")
             ?? throw new InvalidOperationException(
-                "ConnectionStrings:DefaultConnection is not configured.");
+                "ConnectionStrings:DefaultConnection не настроено.");
 
         ValidateTestDatabaseConnectionString(ConnectionString);
 
@@ -45,9 +46,11 @@ public sealed class PostgresTestDatabaseFixture : IAsyncLifetime
         EnsureInitialized();
 
         if (_respawner is null)
-            throw new InvalidOperationException("Respawner is not initialized.");
+            throw new InvalidOperationException(
+                "Respawner не инициализировано.");
 
-        await using NpgsqlConnection connection = new NpgsqlConnection(ConnectionString);
+        await using NpgsqlConnection connection = new NpgsqlConnection(
+            ConnectionString);
         await connection.OpenAsync();
 
         await _respawner.ResetAsync(connection);
@@ -66,7 +69,8 @@ public sealed class PostgresTestDatabaseFixture : IAsyncLifetime
     private async Task MigrateDatabaseAsync()
     {
         await using AsyncServiceScope scope = ServiceProvider.CreateScope();
-        ECommerceDbContext context = scope.ServiceProvider.GetRequiredService<ECommerceDbContext>();
+        ECommerceDbContext context = scope.ServiceProvider
+            .GetRequiredService<ECommerceDbContext>();
 
         await context.Database.MigrateAsync();
     }
@@ -74,34 +78,42 @@ public sealed class PostgresTestDatabaseFixture : IAsyncLifetime
     private async Task<TestSeedData> SeedDatabaseAsync()
     {
         await using AsyncServiceScope scope = ServiceProvider.CreateScope();
-        ECommerceDbContext context = scope.ServiceProvider.GetRequiredService<ECommerceDbContext>();
+        ECommerceDbContext context = scope.ServiceProvider
+            .GetRequiredService<ECommerceDbContext>();
 
         return await TestDataSeeder.SeedAsync(context);
     }
 
     private async Task CreateRespawnerAsync()
     {
-        await using NpgsqlConnection connection = new NpgsqlConnection(ConnectionString);
+        await using NpgsqlConnection connection = new NpgsqlConnection(
+            ConnectionString);
         await connection.OpenAsync();
 
         _respawner = await RespawnCheckpointFactory.CreateAsync(connection);
     }
 
-    private static void ValidateTestDatabaseConnectionString(string connectionString)
+    private static void ValidateTestDatabaseConnectionString(
+        string connectionString)
     {
-        NpgsqlConnectionStringBuilder builder = new NpgsqlConnectionStringBuilder(connectionString);
+        NpgsqlConnectionStringBuilder builder
+            = new NpgsqlConnectionStringBuilder(connectionString);
 
         if (string.IsNullOrWhiteSpace(builder.Database))
         {
             throw new InvalidOperationException(
-                "The test connection string must contain a database name.");
+                "Строка подключения для проверки должна содержать имя " +
+                "базы данных.");
         }
 
-        if (!builder.Database.Contains("test", StringComparison.OrdinalIgnoreCase))
+        if (!builder.Database.Contains(
+            "test", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException(
-                $"Refusing to run integration tests against database '{builder.Database}'. " +
-                "Use a dedicated test database.");
+                $"Отказ от выполнения интеграционных тестов с " +
+                $"использованием базы данных " +
+                $"'{builder.Database}'. " +
+                "Используйте отдельную тестовую базу данных.");
         }
     }
 
@@ -110,7 +122,7 @@ public sealed class PostgresTestDatabaseFixture : IAsyncLifetime
         if (_serviceProvider is null)
         {
             throw new InvalidOperationException(
-                "Test fixture is not initialized.");
+                "Тестовое окружение не инициализировано.");
         }
     }
 }

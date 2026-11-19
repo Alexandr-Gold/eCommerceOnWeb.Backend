@@ -1,5 +1,6 @@
 ﻿using eCommerceOnWeb.Backend.Application;
 using eCommerceOnWeb.Backend.Application.Common.Interfaces;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,10 @@ internal sealed class TestServiceProvider : IAsyncDisposable
         services.AddSingleton(configuration);
 
         services.AddSingleton<IStorageService, TestStorageService>();
+
+        services.AddSingleton<SaveChangesTestBarrier>();
+
+        services.AddScoped<IInterceptor, SaveChangesTestBarrierInterceptor>();
 
         services.AddApplication();
         services.AddPersistence(configuration);
